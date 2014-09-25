@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="app_name">SlimChat.Android</string>
+    <string name="title_activity_login">登录</string>
+    <string name="hello_world">Hello world!</string>
+    <string name="title_activity_main">通讯录</string>
+    <string name="title_activity_chat">Chat</string>
+    <string name="title_activity_setting">设置</string>
+    <string name="btn_login">登录</string>
+    <string name="send">Send</string>
+    <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="title_activity_startup">StartupActivity</string>
+    <string name="title_activity_welcome">SlimChat</string>
+    <string name="welcome_content">SlimChat.Android</string>
+    <string name="powered_by">Powered by NexTalk.IM</string>
+    <string name="loading">加载中...</string>
+    <string name="username">用户名(slimpp.io注册):</string>
+    <string name="password">密码: </string>
+
+</resources>

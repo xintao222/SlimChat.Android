@@ -6,7 +6,7 @@ slimpp.io协议Android客户端演示项目，演示Web与Android消息互通
 运行
 ====
 
-Eclipse导入项目运行
+Android Studio导入项目
 
 Android登陆
 ==========

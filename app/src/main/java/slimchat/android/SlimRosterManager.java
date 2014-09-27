@@ -67,16 +67,18 @@ public class SlimRosterManager extends SlimContextAware {
 	 * 
 	 * @param array
 	 *            好友列表JSON数组
-	 * 
+	 *
 	 * @throws JSONException
 	 */
-	public void feed(JSONArray array) throws JSONException {
+	public void feed(JSONObject array) throws JSONException {
+        /*
 		for (int i = 0; i < array.length(); i++) {
 			JSONObject json = array.getJSONObject(i);
 			SlimUser buddy = new SlimUser(json);
 			// TODO: 增加一个事件类型，INIT?，一次性通知列表变更
 			this.addBuddy(buddy);
 		}
+		*/
 	}
 
 	/**

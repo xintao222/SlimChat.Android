@@ -25,18 +25,28 @@
 package slimchat.android.service;
 
 import android.app.Service;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
+import android.net.ConnectivityManager;
 import android.os.Binder;
+import android.os.Build;
 import android.os.IBinder;
+import android.os.PowerManager;
 import android.util.Log;
 
 import com.loopj.android.http.RequestParams;
 
 import org.apache.http.Header;
 import org.eclipse.paho.client.mqttv3.IMqttActionListener;
+import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
 import org.eclipse.paho.client.mqttv3.IMqttToken;
+import org.eclipse.paho.client.mqttv3.MqttAsyncClient;
+import org.eclipse.paho.client.mqttv3.MqttCallback;
 import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
 import org.eclipse.paho.client.mqttv3.MqttException;
+import org.eclipse.paho.client.mqttv3.MqttMessage;
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -48,13 +58,13 @@ import slimchat.android.SlimApiProvider;
 import slimchat.android.SlimChatManager;
 import slimchat.android.SlimConversation;
 import slimchat.android.SlimRosterEvent;
+import slimchat.android.SlimRosterManager;
 import slimchat.android.core.SlimCallback;
 import slimchat.android.core.SlimMessage;
 import slimchat.android.core.SlimPresence;
 import slimchat.android.core.SlimUser;
 import slimchat.android.http.SlimHttpClient.OnResponseHandler;
 import slimchat.android.http.SlimHttpClient;
-import slimchat.android.mqtt.MqttAndroidClient;
 import slimchat.android.mqtt.SlimMqttClient;
 import slimchat.android.service.SlimChatReceiver.MessageReceiver;
 import slimchat.android.service.SlimChatReceiver.PresenceReceiver;
@@ -64,17 +74,31 @@ import slimchat.android.service.SlimChatReceiver.PresenceReceiver;
  *
  * @author Feng Lee
  */
-public class SlimChatService extends Service implements MessageReceiver, PresenceReceiver{
+public class SlimChatService extends Service implements MqttCallback, MessageReceiver, PresenceReceiver{
+
+    // Identifier for Intent
+    static final String TAG = "SlimChatService";
 
     /**
      * Instance to judge if getService is alive
      */
     private static SlimChatService instance = null;
+
     private SlimChatSender sender;
+    private String mqttd;
+    private JSONObject userJson;
+    private String userID;
+    private String jsonpd;
+
+    // An intent receiver to deal with changes in network connectivity
+    private NetworkConnectionIntentReceiver networkConnectionMonitor;
+    private boolean backgroundDataEnabled = true;
+    private BroadcastReceiver backgroundDataPreferenceMonitor;
 
     public SlimHttpClient getHttpClient() {
         return httpClient;
     }
+
 
     /**
      * Service binder
@@ -128,6 +152,10 @@ public class SlimChatService extends Service implements MessageReceiver, Presenc
         return user.getId();
     }
 
+    public SlimChatService() {
+        super();
+    }
+
     @Override
     public void onCreate() {
         super.onCreate();
@@ -147,6 +175,7 @@ public class SlimChatService extends Service implements MessageReceiver, Presenc
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
+        registerBroadcastReceivers();
         return super.onStartCommand(intent, flags, startId);
     }
 
@@ -155,6 +184,16 @@ public class SlimChatService extends Service implements MessageReceiver, Presenc
         receiver.setMessageReceiver(null);
         receiver.setPresenceReceiver(null);
         instance = null;
+
+        unregisterBroadcastReceivers();
+
+        // disconnect immediately
+        try {
+            mqttClient.close();
+        } catch (MqttException e) {
+            e.printStackTrace();
+        }
+
         super.onDestroy();
     }
 
@@ -170,12 +209,6 @@ public class SlimChatService extends Service implements MessageReceiver, Presenc
      */
     public void configure(SlimApiProvider provider) {
         this.apiProvider = provider;
-    }
-
-    public void setup(String xxx) {
-
-        //auth cookie
-        //TODO: cookie
     }
 
     /**
@@ -257,9 +290,12 @@ public class SlimChatService extends Service implements MessageReceiver, Presenc
                 callback.onSuccess();
             }
 
-            SlimChatService.this.connect();
+            try {
+                SlimChatService.this.connect();
+            } catch (MqttException e) {
+                e.printStackTrace();
+            }
         }
-
     }
 
     /**
@@ -272,15 +308,11 @@ public class SlimChatService extends Service implements MessageReceiver, Presenc
         JSONObject conn = response.getJSONObject("connection");
         this.domain = conn.getString("domain");
         this.ticket = conn.getString("ticket");
-        /*
-        // this.jsonpd = conn.getString("jsonpd");
+        this.jsonpd = conn.getString("jsonpd");
         this.mqttd = conn.getString("mqttd");
-        this.user = response.getJSONObject("user");
-        this.userID = user.getString("id");
-        JSONObject json = (JSONObject) data;
-        //SlimChat.this.user = new SlimUser(json.getJSONObject("user"));
-        roster.feed(json.getJSONArray("buddies"));
-        */
+        this.userJson = response.getJSONObject("user");
+        this.userID = userJson.getString("id");
+        SlimRosterManager.getInstance().feed(response);
     }
 
     /**
@@ -289,42 +321,34 @@ public class SlimChatService extends Service implements MessageReceiver, Presenc
      * @throws JSONException
      * @throws org.eclipse.paho.client.mqttv3.MqttException
      */
-    void connect() {
-        /*
-        setState(ConnectionState.CONNECTING);
-        if (mqttc == null) {
-            String clientId = userID + "/android";
-            mqttc = new MqttAndroidClient(appContext, mqttd, clientId,
-                    new MemoryPersistence());
+    void connect() throws MqttException {
+        if (mqttClient == null) {
+            mqttClient = new SlimMqttClient(this, mqttd, userID + "/android");
+            mqttClient.setMqttCallback(this);
         }
-        if (!mqttc.isConnected()) {
-            MqttConnectOptions connOpts = new MqttConnectOptions();
-            connOpts.setCleanSession(true);
-            connOpts.setConnectionTimeout(3000);
-            connOpts.setKeepAliveInterval(10 * 60);
-            connOpts.setUserName(this.domain);
-            connOpts.setPassword(this.ticket.toCharArray());
+        if (!mqttClient.isConnected()) {
             try {
-                mqttc.setCallback(this);
-                mqttc.connect(connOpts, null, new IMqttActionListener() {
+                mqttClient.initConnOpts(this.domain, this.ticket);
+                mqttClient.connect(new IMqttActionListener() {
                     @Override
                     public void onFailure(IMqttToken token, Throwable e) {
                         e.printStackTrace();
-                        setState(ConnectionState.CONNERROR);
                     }
 
                     @Override
                     public void onSuccess(IMqttToken token) {
                         Log.d("SlimChatClinet", "MQTT Connected");
-                        setState(ConnectionState.ESTABLISHED);
                     }
                 });
             } catch (MqttException e) {
                 e.printStackTrace();
-                setState(SlimMqttClient.ConnectionState.CONNERROR);
             }
         }
-        */
+    }
+
+    //TODO:
+    void reconnect() {
+
     }
 
     /**
@@ -363,6 +387,7 @@ public class SlimChatService extends Service implements MessageReceiver, Presenc
 
     private void onLoadBuddies(JSONArray json) {
         //TODO:
+
     }
 
 
@@ -487,14 +512,143 @@ public class SlimChatService extends Service implements MessageReceiver, Presenc
             */
     }
 
+    @SuppressWarnings("deprecation")
+    private void registerBroadcastReceivers() {
+        if (networkConnectionMonitor == null) {
+            networkConnectionMonitor = new NetworkConnectionIntentReceiver();
+            registerReceiver(networkConnectionMonitor, new IntentFilter(
+                    ConnectivityManager.CONNECTIVITY_ACTION));
+        }
+
+        if (Build.VERSION.SDK_INT < 14 /**Build.VERSION_CODES.ICE_CREAM_SANDWICH**/) {
+            // Support the old system for background data preferences
+            ConnectivityManager cm = (ConnectivityManager) getSystemService(CONNECTIVITY_SERVICE);
+            backgroundDataEnabled = cm.getBackgroundDataSetting();
+            if (backgroundDataPreferenceMonitor == null) {
+                backgroundDataPreferenceMonitor = new BackgroundDataPreferenceReceiver();
+                registerReceiver(
+                        backgroundDataPreferenceMonitor,
+                        new IntentFilter(
+                                ConnectivityManager.ACTION_BACKGROUND_DATA_SETTING_CHANGED));
+            }
+        }
+    }
+
+
+    private void unregisterBroadcastReceivers(){
+        if(networkConnectionMonitor != null){
+            unregisterReceiver(networkConnectionMonitor);
+            networkConnectionMonitor = null;
+        }
+
+        if (Build.VERSION.SDK_INT < 14 /**Build.VERSION_CODES.ICE_CREAM_SANDWICH**/) {
+            if(backgroundDataPreferenceMonitor != null){
+                unregisterReceiver(backgroundDataPreferenceMonitor);
+            }
+        }
+    }
+
     //TODO: NETWORK MONITOR
 
     class ReconnectManager {
 
+    }
+
+
+    /**
+     * @return whether the android getService can be regarded as online
+     */
+    public boolean isOnline() {
+        ConnectivityManager cm = (ConnectivityManager) getSystemService(CONNECTIVITY_SERVICE);
+        if (cm.getActiveNetworkInfo() != null
+                && cm.getActiveNetworkInfo().isAvailable()
+                && cm.getActiveNetworkInfo().isConnected() && backgroundDataEnabled) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /*
+  * Called in response to a change in network connection - after losing a
+  * connection to the server, this allows us to wait until we have a usable
+  * data connection again
+  */
+    private class NetworkConnectionIntentReceiver extends BroadcastReceiver {
+
+        @Override
+        public void onReceive(Context context, Intent intent) {
+
+            // we protect against the phone switching off
+            // by requesting a wake lock - we request the minimum possible wake
+            // lock - just enough to keep the CPU running until we've finished
+            PowerManager pm = (PowerManager) getSystemService(POWER_SERVICE);
+            PowerManager.WakeLock wl = pm
+                    .newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "MQTT");
+            wl.acquire();
+
+            if (isOnline()) {
+                // we have an internet connection - have another try at
+                // connecting
+                reconnect();
+            } else {
+                try {
+                    mqttClient.offline();
+                } catch (MqttException e) {
+                    e.printStackTrace();
+                }
+            }
+
+            wl.release();
+        }
+    }
+
+    @Override
+    public void connectionLost(Throwable throwable) {
+
+    }
+
+    @Override
+    public void messageArrived(String s, MqttMessage mqttMessage) throws Exception {
+
+    }
+
+    @Override
+    public void deliveryComplete(IMqttDeliveryToken token) {
 
     }
 
     public String getTicket() {
         return ticket;
     }
+
+    /**
+     * Detect changes of the Allow Background Data setting - only used below
+     * ICE_CREAM_SANDWICH
+     */
+    private class BackgroundDataPreferenceReceiver extends BroadcastReceiver {
+
+        @SuppressWarnings("deprecation")
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            ConnectivityManager cm = (ConnectivityManager) getSystemService(CONNECTIVITY_SERVICE);
+            if (cm.getBackgroundDataSetting()) {
+                if (!backgroundDataEnabled) {
+                    backgroundDataEnabled = true;
+                    // we have the Internet connection - have another try at
+                    // connecting
+                    reconnect();
+                }
+            } else {
+                backgroundDataEnabled = false;
+                try {
+                    mqttClient.offline();
+                } catch (MqttException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+
+
 }

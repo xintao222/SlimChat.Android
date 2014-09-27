@@ -1,11 +1,14 @@
 <component name="ProjectDictionaryState">
   <dictionary name="feng">
     <words>
+      <w>comms</w>
       <w>delegator</w>
       <w>mqtt</w>
+      <w>mqttc</w>
       <w>noninfringement</w>
       <w>slimpp</w>
       <w>statu</w>
+      <w>unsubscribe</w>
     </words>
   </dictionary>
 </component>

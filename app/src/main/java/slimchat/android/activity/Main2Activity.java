@@ -50,7 +50,7 @@ import android.widget.ListView;
  * @author slimpp.io
  * 
  */
-public class MainActivity extends ListActivity implements SlimRosterListener {
+public class Main2Activity extends ListActivity implements SlimRosterListener {
 
 	private RosterAdapter adapter;
 

@@ -207,7 +207,7 @@ public class SlimChatService extends Service implements MqttCallback, MessageRec
      * API
      * ---------------------------------------------------------------------------------------------
      */
-    public void configure(SlimApiProvider provider) {
+    public void setup(SlimApiProvider provider) {
         this.apiProvider = provider;
     }
 

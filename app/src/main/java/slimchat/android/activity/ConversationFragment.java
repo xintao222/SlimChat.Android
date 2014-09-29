@@ -8,7 +8,6 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AbsListView;
 import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
 import android.widget.ListAdapter;
 import android.widget.TextView;
 import slimchat.android.R;
@@ -23,7 +22,7 @@ import slimchat.android.R;
  * Activities containing this fragment MUST implement the {@link Callbacks}
  * interface.
  */
-public class ChatListFragment extends Fragment implements AbsListView.OnItemClickListener {
+public class ConversationFragment extends Fragment implements AbsListView.OnItemClickListener {
 
     // TODO: Rename parameter arguments, choose names that match
     // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
@@ -48,8 +47,8 @@ public class ChatListFragment extends Fragment implements AbsListView.OnItemClic
     private ListAdapter mAdapter;
 
     // TODO: Rename and change types of parameters
-    public static ChatListFragment newInstance(String param1, String param2) {
-        ChatListFragment fragment = new ChatListFragment();
+    public static ConversationFragment newInstance(String param1, String param2) {
+        ConversationFragment fragment = new ConversationFragment();
         Bundle args = new Bundle();
         args.putString(ARG_PARAM1, param1);
         args.putString(ARG_PARAM2, param2);
@@ -61,7 +60,7 @@ public class ChatListFragment extends Fragment implements AbsListView.OnItemClic
      * Mandatory empty constructor for the fragment manager to instantiate the
      * fragment (e.g. upon screen orientation changes).
      */
-    public ChatListFragment() {
+    public ConversationFragment() {
     }
 
     @Override

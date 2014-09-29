@@ -76,7 +76,7 @@ public class LoginActivity extends Activity implements OnClickListener {
                         public void run() {
                             btnLogin.setEnabled(true);
                             startActivity(new Intent(LoginActivity.this,
-                                    MainActivity.class));
+                                    Main2Activity.class));
                             Toast.makeText(LoginActivity.this, "Login Success!",
                                     Toast.LENGTH_SHORT).show();
                             finish();

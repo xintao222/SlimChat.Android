@@ -42,6 +42,8 @@ import java.util.List;
  */
 public class SlimChat {
 
+    private String thread = null;
+
     /**
      * 会话类型
      */
@@ -92,6 +94,14 @@ public class SlimChat {
         this.uid = uid;
         this.to = to;
         this.messages = new ArrayList<SlimMessage>();
+    }
+
+    public String getThread() {
+        return thread;
+    }
+
+    public void setThread(String thread) {
+        this.thread = thread;
     }
 
     /**

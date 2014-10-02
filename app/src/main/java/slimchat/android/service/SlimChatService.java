@@ -42,30 +42,24 @@ import org.apache.http.Header;
 import org.eclipse.paho.client.mqttv3.IMqttActionListener;
 import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
 import org.eclipse.paho.client.mqttv3.IMqttToken;
-import org.eclipse.paho.client.mqttv3.MqttAsyncClient;
 import org.eclipse.paho.client.mqttv3.MqttCallback;
-import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
 import org.eclipse.paho.client.mqttv3.MqttException;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
-import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.Set;
 
-import slimchat.android.SlimApiProvider;
-import slimchat.android.SlimChatManager;
-import slimchat.android.SlimConversation;
-import slimchat.android.SlimRosterEvent;
+import slimchat.android.SlimChatApiProvider;
 import slimchat.android.SlimRosterManager;
-import slimchat.android.core.SlimCallback;
-import slimchat.android.core.SlimMessage;
-import slimchat.android.core.SlimPresence;
-import slimchat.android.core.SlimUser;
-import slimchat.android.http.SlimHttpClient.OnResponseHandler;
-import slimchat.android.http.SlimHttpClient;
-import slimchat.android.mqtt.SlimMqttClient;
+import slimchat.android.model.SlimCallback;
+import slimchat.android.model.SlimMessage;
+import slimchat.android.model.SlimPresence;
+import slimchat.android.model.SlimUser;
+import slimchat.android.proto.http.SlimHttpClient.OnResponseHandler;
+import slimchat.android.proto.http.SlimHttpClient;
+import slimchat.android.proto.mqtt.SlimMqttClient;
 import slimchat.android.service.SlimChatReceiver.MessageReceiver;
 import slimchat.android.service.SlimChatReceiver.PresenceReceiver;
 
@@ -116,7 +110,7 @@ public class SlimChatService extends Service implements MqttCallback, MessageRec
     /**
      * Service API Provider
      */
-    private SlimApiProvider apiProvider;
+    private SlimChatApiProvider apiProvider;
 
     private SlimChatReceiver receiver;
 
@@ -207,7 +201,7 @@ public class SlimChatService extends Service implements MqttCallback, MessageRec
      * API
      * ---------------------------------------------------------------------------------------------
      */
-    public void setup(SlimApiProvider provider) {
+    public void setup(SlimChatApiProvider provider) {
         this.apiProvider = provider;
     }
 
@@ -281,6 +275,7 @@ public class SlimChatService extends Service implements MqttCallback, MessageRec
             try {
                 SlimChatService.this.ready(response);
             } catch (JSONException e) {
+                e.printStackTrace();
                 if (callback != null) {
                     callback.onFailure("bad response json", e);
                 }
@@ -310,8 +305,7 @@ public class SlimChatService extends Service implements MqttCallback, MessageRec
         this.ticket = conn.getString("ticket");
         this.jsonpd = conn.getString("jsonpd");
         this.mqttd = conn.getString("mqttd");
-        this.userJson = response.getJSONObject("user");
-        this.userID = userJson.getString("id");
+        this.user = new SlimUser(response.getJSONObject("user"));
         SlimRosterManager.getInstance().feed(response);
     }
 
@@ -344,11 +338,6 @@ public class SlimChatService extends Service implements MqttCallback, MessageRec
                 e.printStackTrace();
             }
         }
-    }
-
-    //TODO:
-    void reconnect() {
-
     }
 
     /**
@@ -459,10 +448,6 @@ public class SlimChatService extends Service implements MqttCallback, MessageRec
     }
 
 
-    private void feedBuddies(JSONArray response) {
-       //TODO: 存储
-    }
-
     /**
      * TODO: this method should be called by SlimChatService
      * @param message 即时消息
@@ -475,11 +460,13 @@ public class SlimChatService extends Service implements MqttCallback, MessageRec
             //2. Open the conversation
             //3. Update unread
             //4. broadcast intent
+        /*
             String from = message.getFrom();
-            SlimConversation conversation = SlimChatManager.getInstance().open(from);
+            SlimChat conversation = SlimChatManager.getInstance().open(from);
             conversation.addMessage(message);
             Log.d("SlimChatManager", "chat: " + conversation.toString()
                     + ", unread: " + conversation.getUnread());
+                    */
         /*
 		if (conversation.getUnread() > 0) {
 			getRoster().updateUnread(from);
@@ -590,7 +577,7 @@ public class SlimChatService extends Service implements MqttCallback, MessageRec
             if (isOnline()) {
                 // we have an internet connection - have another try at
                 // connecting
-                reconnect();
+                //TODO:reconnect();
             } else {
                 try {
                     mqttClient.offline();
@@ -637,7 +624,7 @@ public class SlimChatService extends Service implements MqttCallback, MessageRec
                     backgroundDataEnabled = true;
                     // we have the Internet connection - have another try at
                     // connecting
-                    reconnect();
+                    //TODO: reconnect();
                 }
             } else {
                 backgroundDataEnabled = false;

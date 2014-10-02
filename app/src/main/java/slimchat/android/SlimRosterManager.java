@@ -33,29 +33,34 @@ import org.json.JSONObject;
 
 import android.util.Log;
 import slimchat.android.SlimRosterEvent.Type;
-import slimchat.android.core.SlimUser;
-import slimchat.android.dao.SlimRosterDao;
+import slimchat.android.model.SlimRoom;
+import slimchat.android.model.SlimUser;
+import slimchat.android.db.SlimBuddyDao;
+import slimchat.android.db.SlimRoomDao;
 
 /**
- * 好友列表管理类。
+ * 好友、群组列表管理类。
  * 
  * @author slimpp.io
  * 
  */
 public class SlimRosterManager extends SlimContextAware {
 
+    private static final String TAG = "SlimRosterManager";
+
     private static SlimRosterManager instance = new SlimRosterManager();
 
-	private SlimRosterDao rosterDao;
+    private String rosterVersion = "0";
 
-	private List<SlimRosterListener> listeners;
+    private final SlimRoomDao roomDao;
 
-	private Object appContext;
+    private final SlimBuddyDao buddyDao;
 
-	private SlimRosterManager() {
-		rosterDao = new SlimRosterDao();
-		listeners = new ArrayList<SlimRosterListener>();
-        //TODO: listeners should be broadcast receiver?
+	private List<OnRosterChangeListener> listeners = new ArrayList<OnRosterChangeListener>();
+
+    private SlimRosterManager() {
+		buddyDao = new SlimBuddyDao();
+        roomDao = new SlimRoomDao();
 	}
 
     public static SlimRosterManager getInstance() {
@@ -65,39 +70,57 @@ public class SlimRosterManager extends SlimContextAware {
     /**
 	 * 初始化好友列表
 	 * 
-	 * @param array
 	 *            好友列表JSON数组
 	 *
 	 * @throws JSONException
 	 */
-	public void feed(JSONObject array) throws JSONException {
-        /*
+	public void feed(JSONObject data) throws JSONException {
+        this.buddyDao.clear();
+        JSONArray array = data.getJSONArray("buddies");
 		for (int i = 0; i < array.length(); i++) {
 			JSONObject json = array.getJSONObject(i);
 			SlimUser buddy = new SlimUser(json);
-			// TODO: 增加一个事件类型，INIT?，一次性通知列表变更
-			this.addBuddy(buddy);
+			this.addBuddyToDb(buddy);
 		}
-		*/
+        array = data.getJSONArray("rooms");
+        for(int i = 0; i < array.length(); i++) {
+            JSONObject json = array.getJSONObject(i);
+            SlimRoom room = new SlimRoom(json);
+            this.addRoom(room);
+        }
+        notifyListeners(new SlimRosterEvent(Type.FEED, this));
 	}
 
-	/**
+    /**
 	 * 获取全部好友列表
 	 * 
 	 * @return 全部好友列表
 	 */
 	public List<SlimUser> getBuddies() {
-		return rosterDao.getBuddies();
+		return buddyDao.all();
 	}
 
-	/**
+
+    public List<SlimRoom> getRooms() {
+        return roomDao.all();
+    }
+
+    public SlimRoom getRoom(String name) {
+        return roomDao.get(name);
+    }
+
+    public void addRoom(SlimRoom room) {
+        roomDao.add(room);
+    }
+
+    /**
 	 * 根据名称获取一个好友
 	 * 
 	 * @param name 好友名称
 	 * @return 好友
 	 */
 	public SlimUser getBuddy(String name) {
-		return rosterDao.getBuddy(name);
+		return buddyDao.getBuddy(name);
 	}
 	
 	/**
@@ -106,7 +129,7 @@ public class SlimRosterManager extends SlimContextAware {
 	 * @return 好友总数
 	 */
 	public int getBuddyCount() {
-		return rosterDao.getCount();
+		return buddyDao.getCount();
 	}
 
 
@@ -115,28 +138,32 @@ public class SlimRosterManager extends SlimContextAware {
 	 * @param buddy 好友
 	 */
 	public void addBuddy(SlimUser buddy) {
-		String name = buddy.getId();
-		SlimRosterEvent.Type evtType;
-		if (rosterDao.hasBuddy(name)) {
-			rosterDao.update(buddy);
-			evtType = Type.UPDATED;
-		} else {
-			rosterDao.add(buddy);
-			evtType = Type.ADDED;
-		}
+        Type evtType = addBuddyToDb(buddy);
 
-        //TODO: broadcast intent
 		notifyListeners(new SlimRosterEvent(evtType, this, buddy.getId()));
 	}
 
-	/**
+    private Type addBuddyToDb(SlimUser buddy) {
+        String name = buddy.getId();
+        Type evtType;
+        if (buddyDao.hasBuddy(name)) {
+            buddyDao.update(buddy);
+            evtType = Type.UPDATED;
+        } else {
+            buddyDao.add(buddy);
+            evtType = Type.ADDED;
+        }
+        return evtType;
+    }
+
+    /**
 	 * 根据好友ID删除好友
 	 * 
 	 * @param id 好友ID
 	 */
 	public void removeBuddy(String id) {
-		if (rosterDao.hasBuddy(id)) {
-			rosterDao.removeBuddy(id);
+		if (buddyDao.hasBuddy(id)) {
+			buddyDao.removeBuddy(id);
 			notifyListeners(new SlimRosterEvent(Type.REMOVED, this, id));
 		}
 	}
@@ -146,7 +173,7 @@ public class SlimRosterManager extends SlimContextAware {
 	 * 
 	 * @param listener 变更监听器
 	 */
-	public void addRosterListener(SlimRosterListener listener) {
+	public void addRosterListener(OnRosterChangeListener listener) {
 		synchronized (listeners) {
 			listeners.add(listener);
 		}
@@ -157,7 +184,7 @@ public class SlimRosterManager extends SlimContextAware {
 	 * 
 	 * @param listener 变更监听器
 	 */
-	public void removeRosterListener(SlimRosterListener listener) {
+	public void removeRosterListener(OnRosterChangeListener listener) {
 		synchronized (listeners) {
 			listeners.remove(listener);
 		}
@@ -166,8 +193,8 @@ public class SlimRosterManager extends SlimContextAware {
 	// TODO: SHOULD Refactor Later
 	public void updateUnread(String name) {
 		Log.d("RosterManager",
-				"udpatedUnread " + name + ", Dao: " + rosterDao.hasBuddy(name));
-		if (rosterDao.hasBuddy(name)) {
+                "udpatedUnread " + name + ", Dao: " + buddyDao.hasBuddy(name));
+		if (buddyDao.hasBuddy(name)) {
 			Log.d("SlimRosterManager", "updateUnread " + name);
 			notifyListeners(new SlimRosterEvent(Type.UPDATED, this, name));
 		}
@@ -175,9 +202,10 @@ public class SlimRosterManager extends SlimContextAware {
 
 	private void notifyListeners(SlimRosterEvent event) {
 		synchronized (listeners) {
-			for (SlimRosterListener listener : listeners) {
-				listener.rosterChanged(event);
+			for (OnRosterChangeListener listener : listeners) {
+				listener.onRosterChange(event);
 			}
 		}
 	}
+
 }

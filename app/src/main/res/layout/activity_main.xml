@@ -1,8 +1,6 @@
-<ListView xmlns:android="http://schemas.android.com/apk/res/android"
+<android.support.v4.view.ViewPager xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    android:id="@+id/list"
+    android:id="@+id/pager"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:clickable="true"
-    tools:context=".activity.MainActivity" >
-</ListView>
+    tools:context="slimchat.android.ui.activity.MainActivity" />

@@ -44,14 +44,19 @@ public class SlimRosterEvent {
 	 * 
 	 */
 	public enum Type {
-		ADDED, REMOVED, UPDATED
+		FEED, ADDED, REMOVED, UPDATED
 	}
 
 	private final Type type;
 
 	private final SlimRosterManager roster;
 
-	private final String buddyID;
+	private String buddyID = null;
+
+    SlimRosterEvent(Type type, SlimRosterManager roster) {
+        this.type = type;
+        this.roster = roster;
+    }
 
 	SlimRosterEvent(Type type, SlimRosterManager roster, String buddyID) {
 		this.roster = roster;
@@ -76,6 +81,14 @@ public class SlimRosterEvent {
 	public SlimRosterManager getRoster() {
 		return roster;
 	}
+
+    public String getBuddyId() {
+        return this.buddyID;
+    }
+
+    public void setBuddyId(String buddyId) {
+        this.buddyID = buddyId;
+    }
 
 	/**
 	 * 变更好友ID

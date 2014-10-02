@@ -1,5 +1,5 @@
 /**
- * 
+ *
  * The MIT License (MIT)
  * Copyright (c) 2014 SLIMPP.IO
 
@@ -20,307 +20,241 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
- * 
+ *
  */
 package slimchat.android;
 
-import slimchat.android.app.SlimChatApiProvider;
-import slimchat.android.core.SlimCallback;
-import slimchat.android.core.SlimMessage;
-import slimchat.android.core.SlimPresence;
-import slimchat.android.service.SlimChatService;
+import slimchat.android.model.SlimBody;
+import slimchat.android.model.SlimCallback;
+import slimchat.android.model.SlimMessage;
+import slimchat.android.model.SlimUris;
 
-import android.app.NotificationManager;
-import android.content.ComponentName;
-import android.content.Context;
-import android.content.Intent;
-import android.content.ServiceConnection;
-import android.os.IBinder;
-import android.os.PowerManager;
+import android.net.Uri;
 import android.util.Log;
 
-import java.util.HashSet;
-import java.util.Set;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
- * SlimChat入口类。
- * 
- * <p>
- * Android APP通过SlimChat单例集成即时消息服务。SlimChat维护全局的ChatManger, RosterManger,
- * ChatService实例:<br>
- * <ul>
- * <li>SlimChatService: 客户端类，网络连接和发送、接收消息。</li>
- * <li>SlimChatManger: 聊天会话管理类，打开关闭聊天会话，处理会话消息</li>
- * <li>SlimRosterManager: 好友管理类, 管理好友泪飙</li>
- * </ul>
- * </p>
- * 
+ * 聊天会话实例
+ *
  * @author slimpp.io
- * 
  */
-public class SlimChat extends SlimContextAware  {
-
-    static final String TAG = "SlimChat";
-
-    //single instance
-	private static SlimChat instance = new SlimChat();
-
-    //conversation manager
-	private SlimChatManager manager = null;
-
-    //roster manager
-	private SlimRosterManager roster = null;
-
-    //global settings
-    private SlimChatSetting setting = null;
-
-    //chat service
-    private SlimChatService chatService =  null;
-
-     //service bound?
-    private boolean serviceBound = false;
-
-    //cache api provider
-    private SlimChatApiProvider apiProvider;
+public class SlimChat {
 
     /**
-     * Service bound callback
+     * 会话类型
      */
-    public interface ServiceBoundCallback {
-
-        void onServiceBound();
-
-        void onServiceUnbound();
+    public enum Type {
+        USER,
+        ROOM,
     }
 
-    private ServiceBoundCallback boundCallback = null;
+    private static final String TAG = "SlimChat";
 
     /**
-     * Service binder connection
+     * 当前用户ID
      */
-    private ServiceConnection connection = new ServiceConnection() {
-
-        @Override
-        public void onServiceConnected(ComponentName className, IBinder service) {
-            Log.d(TAG, "ChatService is bound");
-            SlimChatService.ServiceBinder binder = (SlimChatService.ServiceBinder) service;
-            chatService = binder.getService();
-            serviceBound = true;
-            if(boundCallback != null) boundCallback.onServiceBound();
-        }
-
-        @Override
-        public void onServiceDisconnected(ComponentName name) {
-            Log.d(TAG, "ChatService is unbound");
-            chatService = null;
-            serviceBound = false;
-            if(boundCallback != null) boundCallback.onServiceUnbound();
-        }
-    };
-
-    //IoC Injection later???
-    private SlimChat() {
-	}
-
-    @Override
-    public void init(Context appContext) {
-        super.init(appContext);
-        getManager().init(appContext);
-        getRoster().init(appContext);
-        getSetting().init(appContext);
-    }
+    private final String uid;
 
     /**
-     * API Provider
+     * 会话对象URI
+     */
+    private final Uri to;
+    /**
+     * 未读消息数
+     */
+    private int unread = 0;
+    /**
+     * 会话是否激活
+     */
+    private boolean active = false;
+    /**
+     * 最后一条聊天消息
+     */
+    private SlimMessage lastMessage = null;
+    /**
+     * TODO: 消息缓存, 应该存储APP的本地数据库。
+     */
+    private List<SlimMessage> messages;
+    /**
+     * 消息最终处理对象，一般为Activity界面类。
+     */
+    private OnMessageListener listener = null;
+
+    /**
+     * 创建聊天会话
      *
-     * @param provider
+     * @param uid  当前用户ID
+     * @param to   会话对象Uri
      */
-    public void setup(SlimChatApiProvider provider) {
-        this.apiProvider = provider;
+    public SlimChat(String uid, Uri to) {
+        this.uid = uid;
+        this.to = to;
+        this.messages = new ArrayList<SlimMessage>();
     }
 
     /**
-     * Single Instance
+     * 会话对象ID
      *
-     * @return SlimChat
+     * @return 会话对象ID
      */
-    public static SlimChat getInstance() {
-        return instance;
+    public Uri getTo() {
+        return to;
+    }
+
+    public SlimMessage getLastMessage() {
+        return lastMessage;
     }
 
     /**
-     * ChatManager
-     * @return chat manager
-     */
-    public SlimChatManager getManager() {
-        if(manager == null) {
-            manager = SlimChatManager.getInstance();
-        }
-        return manager;
-    }
-
-    /**
-     * RosterManager
-     * @return roster manager
-     */
-    public SlimRosterManager getRoster() {
-        if(roster == null) {
-            roster = SlimRosterManager.getInstance();
-        }
-        return roster;
-    }
-
-    /**
-     * ChatSetting
-     * @return chatSetting
-     */
-    public SlimChatSetting getSetting() {
-        if(setting == null) {
-            setting = SlimChatSetting.getInstance();
-        }
-        return setting;
-    }
-
-    /**
-     * ChatService
-     * @return chat service
-     */
-    public SlimChatService getChatService() {
-        return chatService;
-    }
-
-    /**
-     * Power Manager
+     * 设置消息监听对象
      *
-     * @return
+     * @param listener 消息监听对象
      */
-    public PowerManager getPowerManager() {
-        return (PowerManager) appContext
-                .getSystemService(Context.POWER_SERVICE);
+    public void setMessageListener(OnMessageListener listener) {
+        this.listener = listener;
     }
 
     /**
-     * NotificationManager
+     * 读取全部消息
      *
-     * @return
+     * @return 全部消息列表
      */
-    public NotificationManager getNotificationManager() {
-        return (NotificationManager) appContext
-                .getSystemService(Context.NOTIFICATION_SERVICE);
+    public List<SlimMessage> getMessages() {
+        return messages;
     }
 
     /**
-     * Start
+     * 读取消息总数量
      *
-     * @param callback
+     * @return 消息总数
      */
-    public void start(final ServiceBoundCallback callback) {
-        startService(new ServiceBoundCallback() {
+    public int getMessageCount() {
+        return messages.size();
+    }
+
+    /**
+     * 读取一条消息
+     *
+     * @param index 索引
+     * @return 消息
+     */
+    public SlimMessage getMessage(int index) {
+        return messages.get(index);
+    }
+
+    /**
+     * 激活聊天会话，打开聊天窗口时调用。
+     */
+    public void activate() {
+        unread = 0;
+        active = true;
+    }
+
+    /**
+     * 会话是否激活?
+     *
+     * @return 是否激活
+     */
+    public boolean isActive() {
+        return active;
+    }
+
+    /**
+     * 去激活聊天会话，退出聊天窗口调用
+     */
+    public void deactivate() {
+        active = false;
+    }
+
+    /**
+     * 未读消息数
+     *
+     * @return 未读消息数
+     */
+    public int getUnread() {
+        return unread;
+    }
+
+    /**
+     * 清空未读消息
+     */
+    public void clearUnread() {
+        unread = 0;
+    }
+
+    public void sendMessage(String input) throws Exception {
+        final SlimMessage message = newMessage(input);
+
+        //TODO: FIX Later
+        SlimChatManager.getInstance().send(message, new SlimCallback() {
             @Override
-            public void onServiceBound() {
-               getChatService().setup(apiProvider);
-                callback.onServiceUnbound();
+            public void onSuccess() {
+                Log.d(TAG, "sent " + message.getId());
             }
 
             @Override
-            public void onServiceUnbound() {
-                callback.onServiceUnbound();
+            public void onFailure(String reason, Throwable error
+            ) {
+                Log.d(TAG, reason);
             }
         });
     }
 
-    private void startService(ServiceBoundCallback boundCallback) {
-        this.boundCallback = boundCallback;
-        Intent intent = new Intent(appContext, SlimChatService.class);
-        appContext.startService(intent);
-        appContext.bindService(intent, connection, Context.BIND_AUTO_CREATE);
-    }
-
-    public boolean isServiceBound() {
-        return serviceBound;
-    }
-
-    public boolean isServiceRunning() {
-        return serviceBound && SlimChatService.isAlive();
-    }
-
-    public void stop(final ServiceBoundCallback callback) {
-        this.stopService(callback);
-    }
-
-    private void stopService(ServiceBoundCallback boundCallback) {
-        this.boundCallback = boundCallback;
-        Intent intent = new Intent(appContext, SlimChatService.class);
-        appContext.unbindService(connection);
-        appContext.stopService(intent);
-    }
-
-	/**
-	 * Wrap client login
-	 * 
-	 * @param username
-	 * @param password
-	 * @param callback
-	 */
-	public void login(String username, String password, SlimCallback callback) throws Exception {
-		getChatService().login(username, password, callback);
-	}
-
-	/**
-	 * Online Without buddies
-	 * 
-	 * @param callback
-	 */
-	public void online(final SlimCallback callback) throws Exception {
-		this.online(new HashSet<String>(0), callback);
-	}
-
-	/**
-	 * Wrap client online
-	 * 
-	 * @param callback
-	 */
-	public void online(Set<String> buddies, final SlimCallback callback) throws Exception {
-        getChatService().online(buddies, callback);
-	}
-
-    /**
-     * Send Message
-     *
-     * @param message messge
-     * @throws Exception
-     */
-    public void send(SlimMessage message) throws Exception {
-        this.send(message, null);
-    }
-    /**
-     * 发送聊天消息
-     *
-     * @param message 聊天消息
-     * @param callback 回调
-     */
-    public void send(SlimMessage message, SlimCallback callback) throws Exception {
-        getChatService().send(message, callback);
+    public SlimMessage newMessage(String text) {
+        SlimMessage message = new SlimMessage(uid, SlimUris.parseId(to));
+        message.setDirection(SlimMessage.Direction.SEND);
+        SlimUris.Type toType = SlimUris.parseType(to);
+        if (toType == SlimUris.Type.ROOM) {
+            message.setType(SlimMessage.Type.GRPCHAT);
+        } else {
+            message.setType(SlimMessage.Type.CHAT);
+        }
+        message.setBody(new SlimBody(text));
+        return message;
     }
 
     /**
-     * Publish presence
+     * 加入一条消息
      *
-     * @param presence
-     * @param callback
-     * @throws Exception
+     * @param message 消息文本
      */
-    public void publish(SlimPresence presence, SlimCallback callback) throws Exception {
-        getChatService().publish(presence, callback);
+    public void addMessage(SlimMessage message) {
+        messages.add(message);
+        lastMessage = message;
+        if (message.getDirection() == SlimMessage.Direction.SEND) {
+            if (listener != null) listener.onMessageSent(message.getId());
+        } else {//received
+            if (!active) {
+                unread++;
+            }
+            if (listener != null) listener.onMessageReceived(message.getId());
+        }
     }
 
+
+
     /**
-     * Wrap client offline
-     *
-     * @param callback
+     * Message Listener
      */
-    public void offline(final SlimCallback callback) throws Exception {
-        getChatService().offline(callback);
+    public interface OnMessageListener {
+
+        /**
+         * Message Sent
+         *
+         * @param msgID message ID
+         */
+        void onMessageSent(String msgID);
+
+        /**
+         * Message Received
+         *
+         * @param msgID message ID
+         */
+        void onMessageReceived(String msgID);
+
     }
+
 
 }

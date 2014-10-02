@@ -9,8 +9,8 @@ import org.eclipse.paho.client.mqttv3.MqttMessage;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-import slimchat.android.core.SlimMessage;
-import slimchat.android.core.SlimPresence;
+import slimchat.android.model.SlimMessage;
+import slimchat.android.model.SlimPresence;
 
 /**
  * Created by feng on 14-9-25.

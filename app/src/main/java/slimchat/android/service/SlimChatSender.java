@@ -5,13 +5,10 @@ import com.loopj.android.http.RequestParams;
 import java.util.LinkedList;
 import java.util.Queue;
 
-import slimchat.android.SlimApiProvider;
-import slimchat.android.SlimApiProvider.SlimApi;
-import slimchat.android.SlimChat;
-import slimchat.android.core.SlimCallback;
-import slimchat.android.core.SlimMessage;
-import slimchat.android.core.SlimPresence;
-import slimchat.android.http.SlimHttpClient.OnResponseHandler;
+import slimchat.android.SlimChatApiProvider.SlimApi;
+import slimchat.android.model.SlimMessage;
+import slimchat.android.model.SlimPresence;
+import slimchat.android.proto.http.SlimHttpClient.OnResponseHandler;
 
 /**
  * Created by feng on 14-9-25.
@@ -37,7 +34,7 @@ public class SlimChatSender {
         params.put("ticket", service.getTicket());
         params.put("to", message.getTo());
         params.put("from", message.getFrom());
-        params.put("body", message.getBody());
+        params.put("body", message.getBody().getText());
 
         service.getHttpClient().call(api, params, handler);
         //TODO: delete from queue if success

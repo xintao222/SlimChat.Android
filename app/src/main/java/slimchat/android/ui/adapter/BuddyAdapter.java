@@ -26,6 +26,7 @@ package slimchat.android.ui.adapter;
 
 import slimchat.android.R;
 import slimchat.android.SlimChat;
+import slimchat.android.SlimConversation;
 import slimchat.android.SlimChatManager;
 import slimchat.android.model.SlimUser;
 import android.content.Context;
@@ -75,8 +76,7 @@ public class BuddyAdapter extends ArrayAdapter<SlimUser> {
 		if (user != null) {
             holder.nick.setText(user.getNick() + "(" + user.getPresence() + ")");
 			// tvStatus.setText(user.getStatus());
-			SlimChat chat = SlimChatManager.getInstance()
-					.getChat(user.getId());
+			SlimConversation chat = SlimChat.manager().getChat(user.getId());
 			if (chat != null && chat.getUnread() > 0) {
                 holder.unread.setText(String.valueOf(chat.getUnread()));
                 holder.unread.setVisibility(View.VISIBLE);

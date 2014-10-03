@@ -22,23 +22,14 @@
  * THE SOFTWARE.
  * 
  */
-package slimchat.android;
+package slimchat.android.db;
 
 /**
- * 好友列表变更监听器
+ * Message Database Accessor
  * 
- * @author slimpp.io
- * 
+ * @author feng.lee
+ *
  */
-public interface OnRosterChangeListener {
-
-	/**
-	 * 好友列表变化
-	 * 
-	 * @param event
-	 *            好友列表变更事件
-	 */
-	void onRosterChange(SlimRosterEvent event);
-
+public class SlimMessageDb {
 
 }

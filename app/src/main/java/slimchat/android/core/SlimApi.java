@@ -22,44 +22,64 @@
  * THE SOFTWARE.
  *
  */
-package slimchat.android.db;
-
-import android.util.Log;
-
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
-import slimchat.android.model.SlimRoom;
+package slimchat.android.core;
 
 /**
- * Created by feng on 14-10-1.
+ * SlimChat REST API.
+ *
+ * @author feng.lee@slimpp.io
  */
-public class SlimRoomDao {
+public final class SlimApi {
 
-    private Set<String> ids;
+    //REST Method
+    final Method method;
 
-    private Map<String, SlimRoom> rooms;
+    //REST URL
+    final String url;
 
-    public SlimRoomDao() {
-        ids = new HashSet<String>();
-        rooms = new HashMap<String, SlimRoom>();
+    public SlimApi(Method method, String url) {
+        this.method = method;
+        this.url = url;
     }
 
-    public void add(SlimRoom room) {
-        ids.add(room.getId());
-        rooms.put(room.getId(), room);
-        Log.d("SlimRoomDao", "Add " + room.toString());
+    public Method getMethod() {
+        return method;
     }
 
-    public SlimRoom get(String name) {
-        return rooms.get(name);
+    public String getUrl() {
+        return url;
     }
 
-    public List<SlimRoom> all() {
-        return  new ArrayList<SlimRoom>(rooms.values());
+    /**
+     * REST API Method
+     */
+    public enum Method {
+        GET,
+        POST,
+        PUT,
+        DELETE,
     }
+
+    /**
+     * REST API Provider
+     */
+    public interface Provider {
+
+        /**
+         * Authentication API
+         *
+         * @return authentication API
+         */
+        SlimApi authApi();
+
+        /**
+         * Service API
+         *
+         * @param action action name
+         * @return service api
+         */
+        SlimApi serviceApi(String action);
+
+    }
+
 }

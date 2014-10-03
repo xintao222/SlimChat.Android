@@ -1,8 +1,6 @@
 package slimchat.android.ui.activity;
 
-import slimchat.android.SlimChatManager;
-import slimchat.android.SlimChatManager.ServiceBoundCallback;
-import slimchat.android.SlimChatSetting;
+import slimchat.android.SlimChat;
 
 import android.app.Activity;
 import android.content.Intent;
@@ -11,11 +9,12 @@ import android.view.Window;
 import android.widget.TextView;
 
 import slimchat.android.R;
+import slimchat.android.model.SlimCallback;
 
 /**
  *
  */
-public class WelcomeActivity extends Activity implements  ServiceBoundCallback {
+public class WelcomeActivity extends Activity implements SlimCallback {
 
     TextView footer;
 
@@ -45,16 +44,16 @@ public class WelcomeActivity extends Activity implements  ServiceBoundCallback {
     @Override
     protected void onResume() {
         super.onResume();
-        if (SlimChatManager.getInstance().isServiceRunning()) {
+        if (SlimChat.isRunning()) {
             ready();
         } else {
-            SlimChatManager.getInstance().start(this);
+            SlimChat.startup(this);
         }
     }
 
     public void ready() {
-        String username = SlimChatSetting.getInstance().getUsername();
-        String password = SlimChatSetting.getInstance().getPassword();
+        String username = SlimChat.setting().getUsername();
+        String password = SlimChat.setting().getPassword();
         if (!(username == null || password == null)) {
             Intent intent = new Intent(this, MainActivity.class);
             startActivity(intent);
@@ -70,7 +69,7 @@ public class WelcomeActivity extends Activity implements  ServiceBoundCallback {
     }
 
     @Override
-    public void onServiceBound() {
+    public void onSuccess() {
         runOnUiThread(new Runnable() {
             public void run() {
                 footer.setText("Service bound...");
@@ -80,7 +79,7 @@ public class WelcomeActivity extends Activity implements  ServiceBoundCallback {
     }
 
     @Override
-    public void onServiceUnbound() {
+    public void onFailure(String reason, Throwable error) {
         runOnUiThread(new Runnable() {
             public void run() {
                 footer.setText("Service unbound...");

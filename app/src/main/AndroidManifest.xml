@@ -17,19 +17,6 @@
     <uses-permission android:name="android.permission.GET_TASKS" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
 
-    <!--
-     To retrieve OAuth 2.0 tokens or invalidate tokens to disconnect a user. This disconnect
-     option is required to comply with the Google+ Sign-In developer policies
-    -->
-    <uses-permission android:name="android.permission.USE_CREDENTIALS" />
-
-    <!-- To retrieve the account name (email) as part of sign-in: -->
-    <uses-permission android:name="android.permission.GET_ACCOUNTS" />
-
-    <!-- To auto-complete the email text field in the login form with the user's emails -->
-    <uses-permission android:name="android.permission.READ_PROFILE" />
-    <uses-permission android:name="android.permission.READ_CONTACTS" />
-
     <application
         android:name="slimchat.android.app.SlimChatApplication"
         android:allowBackup="true"
@@ -40,8 +27,9 @@
         <!-- Chat Service -->
         <service android:name="slimchat.android.service.SlimChatService" />
 
+        <!-- fullscreen welcome -->
         <activity
-            android:name=".ui.activity.WelcomeActivity"
+            android:name="slimchat.android.ui.activity.WelcomeActivity"
             android:configChanges="orientation|keyboardHidden|screenSize"
             android:label="@string/title_activity_welcome"
             android:theme="@style/FullscreenTheme" >
@@ -51,19 +39,24 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- login activity -->
         <activity
             android:name="slimchat.android.ui.activity.LoginActivity"
             android:label="@string/title_activity_login"
             android:windowSoftInputMode="adjustResize|stateHidden" />
 
+        <!-- chat activity -->
         <activity
             android:name="slimchat.android.ui.activity.ChatActivity"
             android:label="@string/title_activity_chat" />
 
+        <!-- main activity -->
         <activity
             android:name="slimchat.android.ui.activity.MainActivity"
             android:label="@string/title_activity_main" >
         </activity>
+
     </application>
 
 

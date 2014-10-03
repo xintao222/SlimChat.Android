@@ -36,7 +36,7 @@ import com.loopj.android.http.RequestParams;
 import org.apache.http.Header;
 import org.json.JSONObject;
 
-import slimchat.android.SlimChatApiProvider.SlimApi;
+import slimchat.android.core.SlimApi;
 import slimchat.android.model.SlimCallback;
 
 /**

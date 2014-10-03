@@ -1,5 +1,5 @@
 /**
- * 
+ *
  * The MIT License (MIT)
  * Copyright (c) 2014 <slimpp.io>
 
@@ -20,16 +20,63 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
- * 
+ *
  */
 package slimchat.android.db;
 
-/**
- * Message Database Accessor
- * 
- * @author feng.lee
- *
- */
-public class SlimMessageDao {
+import android.util.Log;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import slimchat.android.model.SlimRoom;
+
+/**
+ * Created by feng on 14-10-1.
+ */
+public class SlimRoomDb {
+
+    private Set<String> ids;
+
+    private Map<String, SlimRoom> rooms;
+
+    public SlimRoomDb() {
+        ids = new HashSet<String>();
+        rooms = new HashMap<String, SlimRoom>();
+    }
+
+    public void add(SlimRoom room) {
+        ids.add(room.getId());
+        rooms.put(room.getId(), room);
+        Log.d("SlimRoomDao", "Add " + room.toString());
+    }
+
+    public SlimRoom get(String name) {
+        return rooms.get(name);
+    }
+
+    public List<SlimRoom> all() {
+        return  new ArrayList<SlimRoom>(rooms.values());
+    }
+
+    public void clear() {
+
+    }
+
+    public boolean hasRoom(String id) {
+        return rooms.containsKey(id);
+    }
+
+    public void update(SlimRoom room) {
+        rooms.put(room.getId(), room);
+    }
+
+    public void remove(String id) {
+        ids.remove(id);
+        rooms.remove(id);
+    }
 }

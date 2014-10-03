@@ -33,35 +33,29 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ListView;
 
-import slimchat.android.OnRosterChangeListener;
 import slimchat.android.R;
-import slimchat.android.SlimRosterEvent;
-import slimchat.android.SlimRosterManager;
-import slimchat.android.ui.OnChatListener;
+import slimchat.android.SlimChat;
+import slimchat.android.SlimChatRoster;
 import slimchat.android.ui.adapter.RoomAdapter;
 import slimchat.android.model.SlimRoom;
 
 
 /**
  * A fragment representing a list of Items.
- * <p />
+ * <p/>
  * Large screen devices (such as tablets) are supported by replacing the ListView
  * with a GridView.
- * <p />
+ * <p/>
  */
-public class RoomListFragment extends ListFragment implements OnRosterChangeListener {
+public class RoomListFragment extends ListFragment implements SlimChatRoster.OnRoomChangeListener {
 
     private static final String TAG = "RoomListFragment";
-
-    private OnChatListener listener;
 
     /**
      * The Adapter which will be used to populate the ListView/GridView with
      * Views.
      */
     private RoomAdapter adapter;
-
-    private SlimRosterManager roster;
 
     /**
      * Mandatory empty constructor for the fragment manager to instantiate the
@@ -75,11 +69,9 @@ public class RoomListFragment extends ListFragment implements OnRosterChangeList
 
         super.onCreate(savedInstanceState);
 
-        roster = SlimRosterManager.getInstance();
+        adapter = new RoomAdapter(getActivity(), R.layout.item_room, SlimChat.roster().getRooms());
 
-        adapter = new RoomAdapter(getActivity(), R.layout.item_room, roster.getRooms());
-
-        roster.addRosterListener(this);
+        SlimChat.roster().setRoomListener(this);
 
     }
 
@@ -104,42 +96,35 @@ public class RoomListFragment extends ListFragment implements OnRosterChangeList
     @Override
     public void onAttach(Activity activity) {
         super.onAttach(activity);
-        try {
-            listener = (OnChatListener) activity;
-        } catch (ClassCastException e) {
-            throw new ClassCastException(activity.toString()
-                + " must implement OnFragmentInteractionListener");
-        }
     }
 
     @Override
     public void onDetach() {
         super.onDetach();
-        listener = null;
     }
 
     @Override
     public void onHiddenChanged(boolean hidden) {
         Log.d(TAG, "hidden: " + hidden);
         super.onHiddenChanged(hidden);
+        refresh();
     }
 
     @Override
     public void onResume() {
         Log.d(TAG, "onResume");
         super.onResume();
-        refresh();
     }
 
     public void onDestroy() {
         Log.d(TAG, "onDestroy");
         super.onDestroy();
-        SlimRosterManager.getInstance().removeRosterListener(this);
+        SlimChat.roster().setRoomListener(null);
     }
 
     public void refresh() {
-        if(!isHidden()) {
-            adapter = new RoomAdapter(getActivity(), R.layout.item_room, SlimRosterManager.getInstance().getRooms());
+        if (!isHidden()) {
+            adapter = new RoomAdapter(getActivity(), R.layout.item_room, SlimChat.roster().getRooms());
             setListAdapter(adapter);
             adapter.notifyDataSetChanged();
         }
@@ -150,15 +135,14 @@ public class RoomListFragment extends ListFragment implements OnRosterChangeList
     public void onListItemClick(ListView parent, View v,
                                 int position, long id) {
         Log.d(TAG, "ItemClicked: " + id);
-             if (null != listener) {
-                 SlimRoom room = adapter.getItem((int)id);
-                 listener.startChat(room.getUri());
-             }
-         }
+        SlimRoom room = adapter.getItem((int) id);
+        ((MainActivity) getActivity()).startChat(room.getUri());
+    }
 
 
     @Override
-    public void onRosterChange(SlimRosterEvent evnet) {
+    public void onRoomChange(SlimChatRoster.EventType eventType, String id) {
         refresh();
     }
+
 }

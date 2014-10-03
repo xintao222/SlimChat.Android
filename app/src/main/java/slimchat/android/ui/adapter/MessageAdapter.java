@@ -25,7 +25,7 @@
 package slimchat.android.ui.adapter;
 
 import slimchat.android.R;
-import slimchat.android.SlimChat;
+import slimchat.android.SlimConversation;
 import slimchat.android.model.SlimMessage;
 import android.content.Context;
 import android.view.Gravity;
@@ -48,10 +48,10 @@ public class MessageAdapter extends BaseAdapter {
 
 	private LayoutInflater inflater;
 
-	private SlimChat chat;
+	private SlimConversation chat;
 
 	public MessageAdapter(Context context, int resourceId,
-                          SlimChat chat) {
+                          SlimConversation chat) {
 		super();
 		inflater = LayoutInflater.from(context);
 		this.resourceId = resourceId;

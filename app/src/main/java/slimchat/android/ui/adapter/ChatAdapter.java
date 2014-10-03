@@ -37,7 +37,8 @@ import java.util.List;
 
 import slimchat.android.R;
 import slimchat.android.SlimChat;
-import slimchat.android.SlimRosterManager;
+import slimchat.android.SlimConversation;
+import slimchat.android.SlimChatRoster;
 import slimchat.android.model.SlimMessage;
 import slimchat.android.model.SlimRoom;
 import slimchat.android.model.SlimUris;
@@ -48,13 +49,13 @@ import slimchat.android.model.SlimUser;
  *
  * Created by feng on 14-9-23.
  */
-public class ChatAdapter extends ArrayAdapter<SlimChat> {
+public class ChatAdapter extends ArrayAdapter<SlimConversation> {
 
     private int resourceId;
 
     private LayoutInflater inflater;
 
-    public ChatAdapter(Context context, int resourceId, List<SlimChat> objects) {
+    public ChatAdapter(Context context, int resourceId, List<SlimConversation> objects) {
         super(context, resourceId, objects);
         this.resourceId = resourceId;
         inflater = LayoutInflater.from(context);
@@ -78,10 +79,10 @@ public class ChatAdapter extends ArrayAdapter<SlimChat> {
             convertView.setTag(holder);
         }
 
-        SlimChat chat = getItem(position);
+        SlimConversation chat = getItem(position);
         if(chat != null) {
             //holder.name.setText(chat.getTo());
-            holder.unread.setText(chat.getUnread());
+            holder.unread.setText(String.valueOf(chat.getUnread()));
 
         }
         SlimMessage message = chat.getLastMessage();
@@ -91,18 +92,17 @@ public class ChatAdapter extends ArrayAdapter<SlimChat> {
         }
 
         //todo:
-        SlimRosterManager roster = SlimRosterManager.getInstance();
         Uri uri = chat.getTo();
         String name = SlimUris.parseId(uri);
 
         if(SlimUris.isUserUri(uri)) {
-            SlimUser buddy = roster.getBuddy(name);
+            SlimUser buddy = SlimChat.roster().getBuddy(name);
             if(buddy != null) {
                 holder.nick.setText(buddy.getNick());
                 holder.avatar.setImageResource(R.drawable.male);
             }
         }else if(SlimUris.isRoomUri(uri)) {
-            SlimRoom room = roster.getRoom(name);
+            SlimRoom room = SlimChat.roster().getRoom(name);
             if(room != null) {
                 holder.nick.setText(room.getNick());
                 holder.avatar.setImageResource(R.drawable.room);

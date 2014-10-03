@@ -42,7 +42,11 @@ public class SlimChatNotifier {
 
     static int MessageID = 0;
 
-    public static void notifcation(Context context, String messageString, Intent intent, int notificationTitle) {
+    SlimChatNotifier() {
+
+    }
+
+    public void notifcation(Context context, String messageString, Intent intent, int notificationTitle) {
 
         //Get the notification manage which we will use to display the notification
         String ns = Context.NOTIFICATION_SERVICE;

@@ -41,17 +41,15 @@ import android.view.MenuItem;
 import java.util.ArrayList;
 
 import slimchat.android.R;
-import slimchat.android.SlimChatManager;
+import slimchat.android.SlimChat;
 import slimchat.android.model.SlimCallback;
-import slimchat.android.model.SlimUris;
-import slimchat.android.ui.OnChatListener;
 
 
 /**
  * MainActivity
  */
 public class MainActivity  extends FragmentActivity implements
-        ActionBar.TabListener, OnChatListener {
+        ActionBar.TabListener {
 
     static final String TAG = "MainActivity";
 
@@ -74,7 +72,7 @@ public class MainActivity  extends FragmentActivity implements
         setupView();
         registerListeners();
             try {
-                SlimChatManager.getInstance().online(new SlimCallback() {
+                SlimChat.client().online(new SlimCallback() {
                     @Override
                     public void onSuccess() {
                         Log.d(TAG, "online success");
@@ -198,11 +196,7 @@ public class MainActivity  extends FragmentActivity implements
         //nothing to do
     }
 
-    @Override
     public void startChat(Uri uri) {
-        Log.d(TAG, "startChat to " + uri.toString());
-        Log.d(TAG, "uri path: " + uri.getPath());
-        Log.d(TAG, "uri id: " + SlimUris.parseId(uri));
         Intent intent = new Intent(this, ChatActivity.class);
         intent.setData(uri);
         startActivity(intent);

@@ -1,7 +1,7 @@
 /**
  *
  * The MIT License (MIT)
- * Copyright (c) 2014 SLIMPP.IO
+ * Copyright (c) 2014 <slimpp.io>
 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,247 +24,149 @@
  */
 package slimchat.android;
 
-import slimchat.android.model.SlimBody;
+import android.app.NotificationManager;
+import android.content.Context;
+import android.os.PowerManager;
+
+import slimchat.android.core.SlimApi;
 import slimchat.android.model.SlimCallback;
-import slimchat.android.model.SlimMessage;
-import slimchat.android.model.SlimUris;
-
-import android.net.Uri;
-import android.util.Log;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /**
- * 聊天会话实例
- *
- * @author slimpp.io
+ * SlimChat is the main entry point of this library.
+ * <p/>
+ * Use SlimChat to:
+ * <p/>
+ * <ul>
+ * <li>Init application context</li>
+ * <li>Init SlimChatClient instance</li>
+ * <li>Init SlimChatManager instance</li>
+ * <li>Init SlimChatRoster instance</li>
+ * <li>Init SlimChatSetting instance</li>
+ * </ul>
  */
 public class SlimChat {
 
-    private String thread = null;
+    //application context
+    static Context appContext = null;
+
+    //slimchat client
+    static SlimChatClient client = new SlimChatClient();
+
+    //roster
+    static SlimChatRoster roster = new SlimChatRoster();
+
+    //chat manager
+    static SlimChatManager manager = new SlimChatManager();
+
+    //setting
+    static SlimChatSetting setting = new SlimChatSetting();
+
+    //notifier
+    static SlimChatNotifier notifier = new SlimChatNotifier();
+
+    private SlimChat() {}
 
     /**
-     * 会话类型
+     * @param context
      */
-    public enum Type {
-        USER,
-        ROOM,
+    public static void init(Context context) {
+        appContext = context;
+        manager.init(context);
+        client.init(context);
+        roster.init(context);
+        setting.init(context);
     }
 
-    private static final String TAG = "SlimChat";
 
     /**
-     * 当前用户ID
+     * @param apiProvider
      */
-    private final String uid;
+    public static void setup(SlimApi.Provider apiProvider) {
+        client.setApiProvier(apiProvider);
+    }
 
     /**
-     * 会话对象URI
-     */
-    private final Uri to;
-    /**
-     * 未读消息数
-     */
-    private int unread = 0;
-    /**
-     * 会话是否激活
-     */
-    private boolean active = false;
-    /**
-     * 最后一条聊天消息
-     */
-    private SlimMessage lastMessage = null;
-    /**
-     * TODO: 消息缓存, 应该存储APP的本地数据库。
-     */
-    private List<SlimMessage> messages;
-    /**
-     * 消息最终处理对象，一般为Activity界面类。
-     */
-    private OnMessageListener listener = null;
-
-    /**
-     * 创建聊天会话
+     * Service is running?
      *
-     * @param uid  当前用户ID
-     * @param to   会话对象Uri
+     * @return running
      */
-    public SlimChat(String uid, Uri to) {
-        this.uid = uid;
-        this.to = to;
-        this.messages = new ArrayList<SlimMessage>();
-    }
-
-    public String getThread() {
-        return thread;
-    }
-
-    public void setThread(String thread) {
-        this.thread = thread;
+    public static boolean isRunning() {
+        return client.isServiceRunning();
     }
 
     /**
-     * 会话对象ID
+     * Start and bound chat service.
      *
-     * @return 会话对象ID
+     * @param callback service bound callback
      */
-    public Uri getTo() {
-        return to;
-    }
-
-    public SlimMessage getLastMessage() {
-        return lastMessage;
-    }
-
-    /**
-     * 设置消息监听对象
-     *
-     * @param listener 消息监听对象
-     */
-    public void setMessageListener(OnMessageListener listener) {
-        this.listener = listener;
-    }
-
-    /**
-     * 读取全部消息
-     *
-     * @return 全部消息列表
-     */
-    public List<SlimMessage> getMessages() {
-        return messages;
-    }
-
-    /**
-     * 读取消息总数量
-     *
-     * @return 消息总数
-     */
-    public int getMessageCount() {
-        return messages.size();
-    }
-
-    /**
-     * 读取一条消息
-     *
-     * @param index 索引
-     * @return 消息
-     */
-    public SlimMessage getMessage(int index) {
-        return messages.get(index);
-    }
-
-    /**
-     * 激活聊天会话，打开聊天窗口时调用。
-     */
-    public void activate() {
-        unread = 0;
-        active = true;
-    }
-
-    /**
-     * 会话是否激活?
-     *
-     * @return 是否激活
-     */
-    public boolean isActive() {
-        return active;
-    }
-
-    /**
-     * 去激活聊天会话，退出聊天窗口调用
-     */
-    public void deactivate() {
-        active = false;
-    }
-
-    /**
-     * 未读消息数
-     *
-     * @return 未读消息数
-     */
-    public int getUnread() {
-        return unread;
-    }
-
-    /**
-     * 清空未读消息
-     */
-    public void clearUnread() {
-        unread = 0;
-    }
-
-    public void sendMessage(String input) throws Exception {
-        final SlimMessage message = newMessage(input);
-
-        //TODO: FIX Later
-        SlimChatManager.getInstance().send(message, new SlimCallback() {
+    public static void startup(final SlimCallback callback) {
+        client.startService(new SlimChatClient.ServiceBoundCallback() {
             @Override
-            public void onSuccess() {
-                Log.d(TAG, "sent " + message.getId());
+            public void onServiceBound() {
+                callback.onSuccess();
             }
 
             @Override
-            public void onFailure(String reason, Throwable error
-            ) {
-                Log.d(TAG, reason);
+            public void onServiceUnbound() {
+                callback.onFailure("Service unbound", null);
             }
         });
     }
 
-    public SlimMessage newMessage(String text) {
-        SlimMessage message = new SlimMessage(uid, SlimUris.parseId(to));
-        message.setDirection(SlimMessage.Direction.SEND);
-        SlimUris.Type toType = SlimUris.parseType(to);
-        if (toType == SlimUris.Type.ROOM) {
-            message.setType(SlimMessage.Type.GRPCHAT);
-        } else {
-            message.setType(SlimMessage.Type.CHAT);
-        }
-        message.setBody(new SlimBody(text));
-        return message;
-    }
-
     /**
-     * 加入一条消息
+     * SlimChatClient's single instance
      *
-     * @param message 消息文本
+     * @return SlimChatClient
      */
-    public void addMessage(SlimMessage message) {
-        messages.add(message);
-        lastMessage = message;
-        if (message.getDirection() == SlimMessage.Direction.SEND) {
-            if (listener != null) listener.onMessageSent(message.getId());
-        } else {//received
-            if (!active) {
-                unread++;
-            }
-            if (listener != null) listener.onMessageReceived(message.getId());
-        }
+    public static SlimChatClient client() {
+        return client;
     }
-
-
 
     /**
-     * Message Listener
+     * SlimChatManager's single instance
+     *
+     * @return manager
      */
-    public interface OnMessageListener {
-
-        /**
-         * Message Sent
-         *
-         * @param msgID message ID
-         */
-        void onMessageSent(String msgID);
-
-        /**
-         * Message Received
-         *
-         * @param msgID message ID
-         */
-        void onMessageReceived(String msgID);
-
+    public static SlimChatManager manager() {
+        return manager;
     }
 
+    /**
+     * SlimChatRoster's single instance
+     *
+     * @return SlimChatRoster
+     */
+    public static SlimChatRoster roster() {
+        return roster;
+    }
+
+    /**
+     * SlimChatSetting
+     *
+     * @return SlimChatSetting
+     */
+    public static SlimChatSetting setting() {
+        return setting;
+    }
+
+    /**
+     * Power Manager
+     *
+     * @return
+     */
+    public static PowerManager powerManager() {
+        return (PowerManager) appContext
+                .getSystemService(Context.POWER_SERVICE);
+    }
+
+    /**
+     * NotificationManager
+     *
+     * @return
+     */
+    public static NotificationManager notificationManager() {
+        return (NotificationManager) appContext
+                .getSystemService(Context.NOTIFICATION_SERVICE);
+    }
 
 }

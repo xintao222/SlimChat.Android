@@ -25,6 +25,7 @@
 package slimchat.android.ui.activity;
 
 import slimchat.android.R;
+import slimchat.android.SlimChat;
 import slimchat.android.SlimChatManager;
 import slimchat.android.model.SlimCallback;
 
@@ -70,7 +71,7 @@ public class LoginActivity extends Activity implements OnClickListener, SlimCall
 		String username = etUsername.getText().toString();
 		String password = etPassword.getText().toString();
         try {
-            SlimChatManager.getInstance().login(username, password, this);
+            SlimChat.client().login(username, password, this);
         } catch (Exception e) {
             e.printStackTrace();
             Toast.makeText(LoginActivity.this,

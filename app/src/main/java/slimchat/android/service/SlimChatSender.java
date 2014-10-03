@@ -5,7 +5,7 @@ import com.loopj.android.http.RequestParams;
 import java.util.LinkedList;
 import java.util.Queue;
 
-import slimchat.android.SlimChatApiProvider.SlimApi;
+import slimchat.android.core.SlimApi;
 import slimchat.android.model.SlimMessage;
 import slimchat.android.model.SlimPresence;
 import slimchat.android.proto.http.SlimHttpClient.OnResponseHandler;

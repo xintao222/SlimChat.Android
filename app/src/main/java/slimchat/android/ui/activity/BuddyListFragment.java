@@ -9,11 +9,9 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ListView;
 
-import slimchat.android.OnRosterChangeListener;
 import slimchat.android.R;
-import slimchat.android.SlimRosterEvent;
-import slimchat.android.SlimRosterManager;
-import slimchat.android.ui.OnChatListener;
+import slimchat.android.SlimChat;
+import slimchat.android.SlimChatRoster;
 import slimchat.android.ui.adapter.BuddyAdapter;
 import slimchat.android.model.SlimUser;
 
@@ -23,11 +21,9 @@ import slimchat.android.model.SlimUser;
  * <p />
  * <p />
  */
-public class BuddyListFragment extends ListFragment implements OnRosterChangeListener {
+public class BuddyListFragment extends ListFragment implements SlimChatRoster.OnBuddyChangeListener {
 
     private static final String TAG = "BuddyListFragment";
-
-    private OnChatListener listener;
 
     /**
      * The Adapter which will be used to populate the ListView/GridView with
@@ -46,9 +42,10 @@ public class BuddyListFragment extends ListFragment implements OnRosterChangeLis
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        adapter = new BuddyAdapter(getActivity(), R.layout.item_buddy, SlimRosterManager.getInstance().getBuddies());
+        adapter = new BuddyAdapter(getActivity(), R.layout.item_buddy, SlimChat.roster().getBuddies());
 
-        SlimRosterManager.getInstance().addRosterListener(this);
+        SlimChat.roster().setBuddyListener(this);
+
         Log.d(TAG, "onCreate");
     }
 
@@ -73,26 +70,19 @@ public class BuddyListFragment extends ListFragment implements OnRosterChangeLis
     @Override
     public void onAttach(Activity activity) {
         super.onAttach(activity);
-        Log.d(TAG, "onAttach");
-        try {
-            listener = (OnChatListener) activity;
-        } catch (ClassCastException e) {
-            throw new ClassCastException(activity.toString()
-                    + " must implement OnFragmentInteractionListener");
-        }
     }
 
     @Override
     public void onDetach() {
         super.onDetach();
         Log.d(TAG, "onDetach");
-        listener = null;
     }
 
     @Override
     public void onHiddenChanged(boolean hidden) {
         Log.d(TAG, "hidden changed: " + hidden);
         super.onHiddenChanged(hidden);
+        refresh();
     }
 
     @Override
@@ -103,7 +93,7 @@ public class BuddyListFragment extends ListFragment implements OnRosterChangeLis
 
     public void refresh() {
         if(!isHidden()) {
-            adapter = new BuddyAdapter(getActivity(), R.layout.item_buddy, SlimRosterManager.getInstance().getBuddies());
+            adapter = new BuddyAdapter(getActivity(), R.layout.item_buddy, SlimChat.roster().getBuddies());
             setListAdapter(adapter);
             adapter.notifyDataSetChanged();
         }
@@ -111,22 +101,19 @@ public class BuddyListFragment extends ListFragment implements OnRosterChangeLis
 
     public void onDestroy() {
         super.onDestroy();
-        SlimRosterManager.getInstance().removeRosterListener(this);
+        SlimChat.roster().setBuddyListener(null);
     }
 
     public void onListItemClick(ListView parent, View v,
                                 int position, long id)
     {
         Log.d(TAG, "ItemClicked: " + id);
-        if (null != listener) {
-            SlimUser user = adapter.getItem((int)id);
-            listener.startChat(user.getUri());
-        }
+        SlimUser user = adapter.getItem((int)id);
+        ((MainActivity)getActivity()).startChat(user.getUri());
     }
 
     @Override
-    public void onRosterChange(SlimRosterEvent evnet) {
+    public void onBuddyChange(SlimChatRoster.EventType evtType, String id) {
         refresh();
     }
-
 }

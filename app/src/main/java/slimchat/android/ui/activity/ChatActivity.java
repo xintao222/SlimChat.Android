@@ -26,8 +26,9 @@ package slimchat.android.ui.activity;
 
 import slimchat.android.R;
 import slimchat.android.SlimChat;
+import slimchat.android.SlimConversation;
 import slimchat.android.SlimChatManager;
-import slimchat.android.SlimChat.OnMessageListener;
+import slimchat.android.SlimConversation.OnMessageListener;
 import slimchat.android.ui.adapter.MessageAdapter;
 
 import android.app.Activity;
@@ -52,7 +53,7 @@ public class ChatActivity extends Activity implements OnClickListener,
 
     private Uri uri;
 
-	private SlimChat chat;
+	private SlimConversation chat;
 
 	private MessageAdapter adapter;
 
@@ -78,7 +79,7 @@ public class ChatActivity extends Activity implements OnClickListener,
 
         uri = getIntent().getData();
 
-		chat = SlimChatManager.getInstance().open(uri);
+		chat = SlimChat.manager().open(uri);
 
 		setTitle("Chating with " + chat.getTo());
 

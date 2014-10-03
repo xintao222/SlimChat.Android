@@ -41,7 +41,7 @@ import android.content.Context;
  * @author Feng Lee
  * 
  */
-public class SlimBuddyDao {
+public class SlimBuddyDb {
 
 	private Set<String> names;
 
@@ -49,7 +49,7 @@ public class SlimBuddyDao {
 
 	private Map<String, SlimUser> buddies;
 
-	public SlimBuddyDao() {
+	public SlimBuddyDb() {
 		names = new HashSet<String>();
 		buddies = new HashMap<String, SlimUser>();
 	}
@@ -85,11 +85,6 @@ public class SlimBuddyDao {
 		buddies.put(buddy.getId(), buddy);
 	}
 
-	public void removeBuddy(String id) {
-		buddies.remove(id);
-		names.remove(id);
-	}
-
 	public int getCount() {
 		return buddies.size();
 	}
@@ -98,4 +93,8 @@ public class SlimBuddyDao {
         buddies.clear();
     }
 
+    public void remove(String id) {
+        buddies.remove(id);
+        names.remove(id);
+    }
 }

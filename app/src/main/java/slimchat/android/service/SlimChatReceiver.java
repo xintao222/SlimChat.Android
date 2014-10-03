@@ -1,6 +1,5 @@
 package slimchat.android.service;
 
-import android.content.Context;
 import android.util.Log;
 
 import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
@@ -17,58 +16,10 @@ import slimchat.android.model.SlimPresence;
  */
 public class SlimChatReceiver implements MqttCallback {
 
+    private final SlimChatService service;
 
-    private final Context context;
-
-    /**
-     * 消息接收器
-     *
-     * @author slimpp.io
-     *
-     */
-    public interface MessageReceiver {
-
-        /**
-         * 消息接收器
-         */
-        void messageArrived(SlimMessage message);
-
-    }
-
-    private MessageReceiver messageReceiver = null;
-
-    /**
-     * 现场接收器
-     */
-    public interface PresenceReceiver {
-
-        /**
-         * 接收现场
-         *
-         * @param presence 现场
-         */
-        void presenceArrived(SlimPresence presence);
-
-    }
-
-    private PresenceReceiver presenceReceiver = null;
-
-    public SlimChatReceiver(Context context) {
-        this.context = context;
-    }
-
-    public void setMessageReceiver(MessageReceiver receiver) {
-        messageReceiver = receiver;
-    }
-
-    public void setPresenceReceiver(PresenceReceiver receiver) {
-        presenceReceiver = receiver;
-    }
-
-    @Override
-    public void connectionLost(Throwable throwable) {
-        //TODO
-        throw new UnsupportedOperationException();
+    public SlimChatReceiver(SlimChatService service) {
+        this.service = service;
     }
 
     @Override
@@ -83,17 +34,13 @@ public class SlimChatReceiver implements MqttCallback {
                 for (int i = 0; i < array.length(); i++) {
                     JSONObject obj = array.getJSONObject(i);
                     SlimPresence p = new SlimPresence(obj);
-                    if (presenceReceiver != null) {
-                        presenceReceiver.presenceArrived(p);
-                    }
+                    handlePresence(p);
                 }
                 array = json.getJSONArray("messages");
                 for (int i = 0; i < array.length(); i++) {
                     JSONObject obj = array.getJSONObject(i);
                     SlimMessage message = new SlimMessage(obj);
-                    if (messageReceiver != null) {
-                        messageReceiver.messageArrived(message);
-                    }
+                    handleMessage(message);
                 }
             } else {
                 errorReceived(json);
@@ -103,14 +50,71 @@ public class SlimChatReceiver implements MqttCallback {
         }
     }
 
-    private void errorReceived(JSONObject json) {
-        //TODO: how to handler error????
-        Log.e("SlimChatReceiver", json.toString());
+
+    @Override
+    public void connectionLost(Throwable throwable) {
+        service.connectionLost(throwable);
     }
+
 
     @Override
     public void deliveryComplete(IMqttDeliveryToken iMqttDeliveryToken) {
         //TODO: nothing to do
     }
+
+    private void errorReceived(JSONObject json) {
+        //TODO: how to handler error????
+        Log.e("SlimChatReceiver", json.toString());
+    }
+
+    /**
+     * TODO: this method should be called by SlimChatService
+     * @param message 即时消息
+     */
+    private void handleMessage(SlimMessage message) {
+        //TODO:
+        Log.d("SlimChatService", "messageArrived: " + message.toString());
+        //1. Store the message
+        //2. Open the conversation
+        //3. Update unread
+        //4. broadcast intent
+        /*
+            String from = message.getFrom();
+            SlimConversation conversation = SlimChatManager.getInstance().open(from);
+            conversation.addMessage(message);
+            Log.d("SlimChatManager", "chat: " + conversation.toString()
+                    + ", unread: " + conversation.getUnread());
+                    */
+        /*
+		if (conversation.getUnread() > 0) {
+			getRoster().updateUnread(from);
+		}
+		*/
+    }
+
+    /**
+     * TODO: 处理现场消息。
+     */
+    private void handlePresence(SlimPresence presence) {
+        Log.d("SlimChatService", "presenceArrived: " + presence.toString());
+        //1. update database
+        //2. update memory
+        //3. broadcast intent
+            /*
+            String from = presence.getFrom();
+            SlimUser buddy = rosterDao.getBuddy(from);
+            if (buddy == null) {
+                // TODO: should load buddy from server
+            } else {
+                // TODO: online, offline presence event??
+                buddy.setPresence(presence.getType());
+                buddy.setShow(presence.getShow());
+                rosterDao.update(buddy);
+                notifyListeners(new SlimRosterEvent(SlimRosterEvent.Type.UPDATED, this,
+                        buddy.getId()));
+            }
+            */
+    }
+
 
 }

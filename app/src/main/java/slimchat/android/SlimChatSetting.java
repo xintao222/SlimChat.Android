@@ -29,7 +29,7 @@ import android.preference.PreferenceManager;
 
 
 /**
- * SlimChat Global Setting
+ * SlimConversation Global Setting
  *
  * @author Feng Lee feng.lee@slimpp.io
  */
@@ -39,17 +39,11 @@ public class SlimChatSetting extends SlimContextAware {
 
     static final String PASSWORD = "password";
 
-    private static SlimChatSetting instance = new SlimChatSetting();
-
     private String password = null;
 
     private String username = null;
 
-    private SlimChatSetting() {
-    }
-
-    public static SlimChatSetting getInstance() {
-        return instance;
+    SlimChatSetting() {
     }
 
     public String getUsername() {

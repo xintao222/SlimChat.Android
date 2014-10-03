@@ -24,8 +24,9 @@
  */
 package slimchat.android.app;
 
-import slimchat.android.SlimChatApiProvider;
-import slimchat.android.SlimChatManager;
+import slimchat.android.SlimChat;
+import slimchat.android.core.SlimApi;
+import slimchat.android.core.SlimApi.Method;
 
 import android.app.Application;
 import android.content.Context;
@@ -49,37 +50,37 @@ public class SlimChatApplication extends Application {
     public void onCreate() {
         super.onCreate();
         appContext = this;
-        Log.d(TAG, "SlimChat Application Created");
-        SlimChatManager.getInstance().init(appContext);
-        SlimChatManager.getInstance().setup(new ApiProvider());
+        Log.d(TAG, "SlimConversation Application Created");
+        SlimChat.init(appContext);
+        SlimChat.setup(new SlimppApiProvider());
     }
 
-    static class ApiProvider implements SlimChatApiProvider {
+    static class SlimppApiProvider implements SlimApi.Provider{
 
         //init api provider
-        final static String AUTH_URl = "http://slimpp.io/login";
+        final String authUrl = "http://slimpp.io/login";
 
-        final static String API_URL = "http://slimpp.io/api.php/v1";
+        final String apiUrl = "http://slimpp.io/api.php/v1";
 
-        final static Map<String, SlimChatApiProvider.SlimApi> API_MAP = new HashMap<String, SlimChatApiProvider.SlimApi>();
+        final Map<String, SlimApi> apiMap = new HashMap<String, SlimApi>();
 
-        static {
-            API_MAP.put("online", new SlimChatApiProvider.SlimApi(SlimChatApiProvider.Method.POST, API_URL + "/online"));
-            API_MAP.put("message", new SlimChatApiProvider.SlimApi(SlimChatApiProvider.Method.POST, API_URL + "/message"));
-            API_MAP.put("presence", new SlimChatApiProvider.SlimApi(SlimChatApiProvider.Method.POST, API_URL + "/presence"));
-            API_MAP.put("status", new SlimChatApiProvider.SlimApi(SlimChatApiProvider.Method.POST, API_URL + "/status"));
-            API_MAP.put("buddies", new SlimChatApiProvider.SlimApi(SlimChatApiProvider.Method.GET, API_URL + "/buddies"));
-            API_MAP.put("offline", new SlimChatApiProvider.SlimApi(SlimChatApiProvider.Method.POST, API_URL + "/offline"));
+        SlimppApiProvider() {
+            apiMap.put("online", new SlimApi(Method.POST, apiUrl + "/online"));
+            apiMap.put("message", new SlimApi(Method.POST, apiUrl + "/message"));
+            apiMap.put("presence", new SlimApi(Method.POST, apiUrl + "/presence"));
+            apiMap.put("status", new SlimApi(Method.POST, apiUrl + "/status"));
+            apiMap.put("buddies", new SlimApi(Method.GET, apiUrl + "/buddies"));
+            apiMap.put("offline", new SlimApi(Method.POST, apiUrl + "/offline"));
         }
 
         @Override
         public SlimApi authApi() {
-            return new SlimApi(Method.POST, AUTH_URl + "?client=android");
+            return new SlimApi(Method.POST, authUrl + "?client=android");
         }
 
         @Override
         public SlimApi serviceApi(String action) {
-            return API_MAP.get(action);
+            return apiMap.get(action);
         }
     }
 

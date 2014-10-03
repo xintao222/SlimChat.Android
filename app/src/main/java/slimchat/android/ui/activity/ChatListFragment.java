@@ -1,6 +1,7 @@
 package slimchat.android.ui.activity;
 
 import android.app.Activity;
+import android.net.Uri;
 import android.os.Bundle;
 import android.support.v4.app.ListFragment;
 import android.view.LayoutInflater;
@@ -10,8 +11,8 @@ import android.widget.ListView;
 
 import slimchat.android.R;
 import slimchat.android.SlimChat;
+import slimchat.android.SlimConversation;
 import slimchat.android.SlimChatManager;
-import slimchat.android.ui.OnChatListener;
 import slimchat.android.ui.adapter.ChatAdapter;
 
 
@@ -22,9 +23,7 @@ import slimchat.android.ui.adapter.ChatAdapter;
  * with a GridView.
  * <p />
  */
-public class ChatListFragment extends ListFragment {
-
-    private OnChatListener mListener;
+public class ChatListFragment extends ListFragment implements SlimChatManager.OnChatListener {
 
     /**
      * The Adapter which will be used to populate the ListView/GridView with
@@ -42,7 +41,8 @@ public class ChatListFragment extends ListFragment {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        adapter = new ChatAdapter(getActivity(), R.layout.item_chat, SlimChatManager.getInstance().getChats());
+        adapter = new ChatAdapter(getActivity(), R.layout.item_chat, SlimChat.manager().getChats());
+        SlimChat.manager().addListener(this);
     }
 
     @Override
@@ -58,23 +58,22 @@ public class ChatListFragment extends ListFragment {
     @Override
     public void onAttach(Activity activity) {
         super.onAttach(activity);
-        try {
-            mListener = (OnChatListener) activity;
-        } catch (ClassCastException e) {
-            throw new ClassCastException(activity.toString()
-                + " must implement OnFragmentInteractionListener");
-        }
     }
 
     @Override
     public void onDetach() {
         super.onDetach();
-        mListener = null;
+    }
+
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        SlimChat.manager().addListener(this);
     }
 
     public void refresh() {
         if(!isHidden()) {
-            adapter = new ChatAdapter(getActivity(), R.layout.item_chat, SlimChatManager.getInstance().getChats());
+            adapter = new ChatAdapter(getActivity(), R.layout.item_chat, SlimChat.manager().getChats());
             setListAdapter(adapter);
             adapter.notifyDataSetChanged();
         }
@@ -82,11 +81,17 @@ public class ChatListFragment extends ListFragment {
 
     public void onListItemClick(ListView parent, View v,
                                 int position, long id) {
-        if (null != mListener) {
-            //TODO: START CHAT
-            SlimChat chat = adapter.getItem((int)id);
-            mListener.startChat(chat.getTo());
-        }
+        SlimConversation chat = adapter.getItem((int)id);
+        ( (MainActivity)getActivity()).startChat(chat.getTo());
     }
 
+    @Override
+    public void onChatOpen(Uri to) {
+        refresh();
+    }
+
+    @Override
+    public void onChatClose(Uri to) {
+        refresh();
+    }
 }

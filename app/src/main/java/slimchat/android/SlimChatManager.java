@@ -204,6 +204,15 @@ public class SlimChatManager extends SlimContextAware {
         Uri uri = SlimUris.userUri(from);
         SlimConversation chat = SlimChat.manager().open(uri);
         chat.addMessage(message);
+        onChatUpdate(uri);
+    }
+
+    /**
+     * called by SlimConversation
+     *
+     * @param uri
+     */
+    public void onChatUpdate(Uri uri) {
         for(OnChatListener l : listeners) {
             l.onChatUpdate(uri);
         }

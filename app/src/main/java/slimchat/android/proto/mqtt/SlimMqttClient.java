@@ -89,10 +89,12 @@ public class SlimMqttClient implements  MqttCallback{
 
     public void initConnOpts(String username, String password) {
         connOpts = new MqttConnectOptions();
+        connOpts.setMqttVersion(MqttConnectOptions.MQTT_VERSION_3_1);
         connOpts.setCleanSession(cleanSession);
         connOpts.setConnectionTimeout(CONNECT_TIMEOUT);
         connOpts.setKeepAliveInterval(KEEP_ALIVE);
         connOpts.setUserName(username);
+        Log.d(TAG, "password: " + password);
         connOpts.setPassword(password.toCharArray());
     }
 
@@ -101,7 +103,8 @@ public class SlimMqttClient implements  MqttCallback{
     }
 
 	public synchronized void connect(IMqttActionListener listener) throws MqttException {
-            mqttc.connect(connOpts, this, listener);
+        Log.d(TAG, connOpts.toString());
+        mqttc.connect(connOpts, this, listener);
 	}
 
     public boolean isConnected() {
@@ -206,7 +209,7 @@ public class SlimMqttClient implements  MqttCallback{
                     .getSystemService(Service.ALARM_SERVICE);
             alarmManager.cancel(pendingIntent);
 
-            Log.d(TAG, "Unregister alarmreceiver to MqttService"+comms.getClient().getClientId());
+            Log.d(TAG, "Unregister alarmreceiver to MqttService "+comms.getClient().getClientId());
             if(hasStarted){
                 hasStarted = false;
                 try{

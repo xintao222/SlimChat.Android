@@ -197,7 +197,7 @@ public class SlimConversation {
      * Activate this conversation when chat activity resumed.
      */
     public void activate() {
-        unread = 0;
+        cleanUnread();
         active = true;
     }
 
@@ -229,8 +229,11 @@ public class SlimConversation {
     /**
      * clean unread
      */
-    public void cleanUnread() {
-        unread = 0;
+    public synchronized void cleanUnread() {
+        if(unread > 0) {
+            unread = 0;
+            manager.onChatUpdate(to);
+        }
     }
 
     /**

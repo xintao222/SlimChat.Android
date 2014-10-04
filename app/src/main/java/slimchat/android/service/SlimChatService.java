@@ -76,54 +76,21 @@ public class SlimChatService extends Service  {
      */
     private static SlimChatService instance = null;
 
-    private SlimChatSender sender;
-
-    private String mqttd;
-
-    private JSONObject userJson;
-
-    private String userID;
-
-    private String jsonpd;
+    private final IBinder binder = new ServiceBinder();
 
     // An intent receiver to deal with changes in network connectivity
     private NetworkConnectionIntentReceiver networkConnectionMonitor;
     private boolean backgroundDataEnabled = true;
     private BroadcastReceiver backgroundDataPreferenceMonitor;
 
-    public SlimHttpClient getHttpClient() {
-        return httpClient;
-    }
-
-    public boolean isConnecting() {
-        throw new UnsupportedOperationException();
-    }
-
-    public void connectionLost(Throwable throwable) {
-        //try to reconnect
-    }
-
-
-    /**
-     * Service binder
-     */
-    public class ServiceBinder extends Binder {
-
-        public SlimChatService getService() {
-            return SlimChatService.this;
-        }
-
-    }
-
-    private final IBinder binder = new ServiceBinder();
-
     /**
      * Service API Provider
      */
     private SlimApi.Provider apiProvider;
 
-    private SlimChatReceiver receiver;
+    private SlimChatSender sender;
 
+    private SlimChatReceiver receiver;
     /**
      * HTTP Client
      */
@@ -132,33 +99,36 @@ public class SlimChatService extends Service  {
      * MQTT Client
      */
     private SlimMqttClient mqttClient = null;
-
     /**
      * Current user
      */
     private SlimUser user;
-
     /**
      * Communication ticket
      */
     private String ticket;
+
+    private String mqttd;
+
+    private String jsonpd;
 
     /**
      * Domain
      */
     private String domain;
 
+    public SlimChatService() {
+        super();
+    }
+
     public static boolean isAlive() {
         return instance != null;
     }
 
-    public String getUserID() {
-        return user.getId();
+    public SlimHttpClient getHttpClient() {
+        return httpClient;
     }
 
-    public SlimChatService() {
-        super();
-    }
 
     @Override
     public void onCreate() {
@@ -201,7 +171,6 @@ public class SlimChatService extends Service  {
         return domain;
     }
 
-
     /**
      * ---------------------------------------------------------------------------------------------
      * API
@@ -228,34 +197,6 @@ public class SlimChatService extends Service  {
     }
 
     /**
-     * Login Handler
-     */
-    private class LoginResponseHandler extends OnResponseHandler {
-
-        LoginResponseHandler(SlimChatService service, SlimCallback callback) {
-            super(service, callback);
-        }
-
-        @Override
-        public void onSuccess(int statusCode, Header[] headers, JSONObject response) {
-            Log.d("LoginReturn", response.toString());
-            try {
-                String status = response.getString("status");
-                if ("ok".equalsIgnoreCase(status)) {
-                    if (callback != null)
-                        callback.onSuccess();
-                } else if ("error".equalsIgnoreCase(status)) {
-                    if (callback != null)
-                        callback.onFailure(response.getString("message"), null);
-                }
-            } catch (JSONException e) {
-                callback.onFailure("BadJson: " + response.toString(), e);
-            }
-        }
-
-    }
-
-    /**
      * User is online
      *
      * @param buddies
@@ -267,36 +208,6 @@ public class SlimChatService extends Service  {
         OnlineResponseHandler handler = new OnlineResponseHandler(this,
                 callback);
         httpClient.call(apiProvider.serviceApi("online"), params, handler);
-    }
-
-    private class OnlineResponseHandler extends OnResponseHandler {
-
-        OnlineResponseHandler(SlimChatService service, SlimCallback callback) {
-            super(service, callback);
-        }
-
-        @Override
-        public void onSuccess(int statusCode, Header[] headers, JSONObject response) {
-            Log.d("OnlineReturn", response.toString());
-            try {
-                SlimChatService.this.ready(response);
-            } catch (JSONException e) {
-                e.printStackTrace();
-                if (callback != null) {
-                    callback.onFailure("bad response json", e);
-                }
-                return;
-            }
-            if (callback != null) {
-                callback.onSuccess();
-            }
-
-            try {
-                SlimChatService.this.connect();
-            } catch (MqttException e) {
-                e.printStackTrace();
-            }
-        }
     }
 
     /**
@@ -324,7 +235,7 @@ public class SlimChatService extends Service  {
      */
     void connect() throws MqttException {
         if (mqttClient == null) {
-            mqttClient = new SlimMqttClient(this, mqttd, userID + "/android");
+            mqttClient = new SlimMqttClient(this, mqttd, user.getId() + "/android");
             mqttClient.setMqttCallback(receiver);
         }
         if (!mqttClient.isConnected()) {
@@ -338,7 +249,7 @@ public class SlimChatService extends Service  {
 
                     @Override
                     public void onSuccess(IMqttToken token) {
-                        Log.d("SlimChatClinet", "MQTT Connected");
+                        Log.d(TAG, "MQTT Connected");
                     }
                 });
             } catch (MqttException e) {
@@ -362,32 +273,6 @@ public class SlimChatService extends Service  {
         httpClient.call(apiProvider.serviceApi("buddies"), params, handler);
     }
 
-    /**
-     * Buddies Response Handler
-     */
-    private class BuddiesResponseHandler extends OnResponseHandler {
-
-        BuddiesResponseHandler(SlimChatService service, SlimCallback callback) {
-            super(service, callback);
-        }
-
-        public void onSuccess(int statusCode, Header[] headers,
-                              final JSONArray response) {
-            Log.d("BuddiesReturn", response.toString());
-            try {
-                SlimChatService.this.onLoadBuddies(response);
-                if (callback != null)
-                    callback.onSuccess();
-            } catch (JSONException e) {
-                e.printStackTrace();
-                if(callback != null)
-                    callback.onFailure("Bad json", e);
-            }
-
-        }
-
-    }
-
     private void onLoadBuddies(JSONArray data) throws JSONException {
 
         for(int i = 0; i < data.length(); i++) {
@@ -395,7 +280,6 @@ public class SlimChatService extends Service  {
         }
 
     }
-
 
     /**
      * Send Message
@@ -455,16 +339,6 @@ public class SlimChatService extends Service  {
         return sb.toString();
     }
 
-    public enum Status {
-
-        ONLINE,
-
-        //connect? disconnect?
-        OFFLINE,
-    }
-
-
-
     @SuppressWarnings("deprecation")
     private void registerBroadcastReceivers() {
         if (networkConnectionMonitor == null) {
@@ -487,7 +361,6 @@ public class SlimChatService extends Service  {
         }
     }
 
-
     private void unregisterBroadcastReceivers(){
         if(networkConnectionMonitor != null){
             unregisterReceiver(networkConnectionMonitor);
@@ -501,13 +374,6 @@ public class SlimChatService extends Service  {
         }
     }
 
-    //TODO: NETWORK MONITOR
-
-    class ReconnectManager {
-
-    }
-
-
     /**
      * @return whether the android getService can be regarded as online
      */
@@ -520,6 +386,128 @@ public class SlimChatService extends Service  {
         }
 
         return false;
+    }
+
+    public String getTicket() {
+        return ticket;
+    }
+
+
+    public boolean isConnecting() {
+        throw new UnsupportedOperationException();
+    }
+
+    public void connectionLost(Throwable throwable) {
+        //try to reconnect
+    }
+
+    public enum Status {
+
+        ONLINE,
+
+        //connect? disconnect?
+        OFFLINE,
+    }
+
+    /**
+     * Service binder
+     */
+    public class ServiceBinder extends Binder {
+
+        public SlimChatService getService() {
+            return SlimChatService.this;
+        }
+
+    }
+
+    /**
+     * Login Handler
+     */
+    private class LoginResponseHandler extends OnResponseHandler {
+
+        LoginResponseHandler(SlimChatService service, SlimCallback callback) {
+            super(service, callback);
+        }
+
+        @Override
+        public void onSuccess(int statusCode, Header[] headers, JSONObject response) {
+            Log.d("LoginReturn", response.toString());
+            try {
+                String status = response.getString("status");
+                if ("ok".equalsIgnoreCase(status)) {
+                    if (callback != null)
+                        callback.onSuccess();
+                } else if ("error".equalsIgnoreCase(status)) {
+                    if (callback != null)
+                        callback.onFailure(response.getString("message"), null);
+                }
+            } catch (JSONException e) {
+                callback.onFailure("BadJson: " + response.toString(), e);
+            }
+        }
+
+    }
+
+    //TODO: NETWORK MONITOR
+
+    private class OnlineResponseHandler extends OnResponseHandler {
+
+        OnlineResponseHandler(SlimChatService service, SlimCallback callback) {
+            super(service, callback);
+        }
+
+        @Override
+        public void onSuccess(int statusCode, Header[] headers, JSONObject response) {
+            Log.d("OnlineReturn", response.toString());
+            try {
+                SlimChatService.this.ready(response);
+            } catch (JSONException e) {
+                e.printStackTrace();
+                if (callback != null) {
+                    callback.onFailure("bad response json", e);
+                }
+                return;
+            }
+            if (callback != null) {
+                callback.onSuccess();
+            }
+
+            try {
+                SlimChatService.this.connect();
+            } catch (MqttException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    /**
+     * Buddies Response Handler
+     */
+    private class BuddiesResponseHandler extends OnResponseHandler {
+
+        BuddiesResponseHandler(SlimChatService service, SlimCallback callback) {
+            super(service, callback);
+        }
+
+        public void onSuccess(int statusCode, Header[] headers,
+                              final JSONArray response) {
+            Log.d("BuddiesReturn", response.toString());
+            try {
+                SlimChatService.this.onLoadBuddies(response);
+                if (callback != null)
+                    callback.onSuccess();
+            } catch (JSONException e) {
+                e.printStackTrace();
+                if(callback != null)
+                    callback.onFailure("Bad json", e);
+            }
+
+        }
+
+    }
+
+    class ReconnectManager {
+
     }
 
     /*
@@ -554,12 +542,6 @@ public class SlimChatService extends Service  {
 
             wl.release();
         }
-    }
-
-
-
-    public String getTicket() {
-        return ticket;
     }
 
     /**

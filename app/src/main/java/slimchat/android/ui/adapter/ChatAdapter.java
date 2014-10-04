@@ -26,6 +26,7 @@ package slimchat.android.ui.adapter;
 
 import android.content.Context;
 import android.net.Uri;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -50,6 +51,8 @@ import slimchat.android.model.SlimUser;
  * Created by feng on 14-9-23.
  */
 public class ChatAdapter extends ArrayAdapter<SlimConversation> {
+
+    private static final String TAG = "ChatAdapter";
 
     private int resourceId;
 
@@ -82,7 +85,13 @@ public class ChatAdapter extends ArrayAdapter<SlimConversation> {
         SlimConversation chat = getItem(position);
         if(chat != null) {
             //holder.name.setText(chat.getTo());
-            holder.unread.setText(String.valueOf(chat.getUnread()));
+            Log.d(TAG, "unread: " + chat.getUnread());
+            if(chat.getUnread() > 0) {
+                holder.unread.setText(String.valueOf(chat.getUnread()));
+                holder.unread.setVisibility(View.VISIBLE);
+            } else {
+                holder.unread.setVisibility(View.INVISIBLE);
+            }
 
         }
         SlimMessage message = chat.getLastMessage();

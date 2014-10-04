@@ -352,7 +352,7 @@ public class SlimChatService extends Service  {
      *  @param ids
      * @param callback
      */
-    public void fetchBuddies(Set<String> ids, final SlimCallback callback) {
+    public void getBuddies(Set<String> ids, final SlimCallback callback) {
         RequestParams params = new RequestParams();
         params.put("domain", domain);
         params.put("ticket", ticket);

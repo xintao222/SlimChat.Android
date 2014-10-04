@@ -28,6 +28,7 @@ import slimchat.android.R;
 import slimchat.android.SlimConversation;
 import slimchat.android.model.SlimMessage;
 import android.content.Context;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -90,7 +91,7 @@ public class MessageAdapter extends BaseAdapter {
 		SlimMessage message = (SlimMessage) getItem(position);
         if(message != null) {
             holder.message.setText(message.getBody().getText());
-            boolean isSendMsg = message.getTo().equals(chat.getTo());
+            boolean isSendMsg = message.getDirection() == SlimMessage.Direction.SEND;
             holder.message.setBackgroundResource(isSendMsg ? R.drawable.bubble_a
                     : R.drawable.bubble_b);
             holder.container.setGravity(isSendMsg ? Gravity.RIGHT : Gravity.LEFT);

@@ -72,11 +72,15 @@ public class ChatListFragment extends ListFragment implements SlimChatManager.On
     }
 
     public void refresh() {
+
         if(!isHidden()) {
+            getActivity().runOnUiThread(new Runnable() {
+                public void run() {
             adapter = new ChatAdapter(getActivity(), R.layout.item_chat, SlimChat.manager().getChats());
             setListAdapter(adapter);
             adapter.notifyDataSetChanged();
-        }
+                }});
+        };
     }
 
     public void onListItemClick(ListView parent, View v,
@@ -92,6 +96,11 @@ public class ChatListFragment extends ListFragment implements SlimChatManager.On
 
     @Override
     public void onChatClose(Uri to) {
+        refresh();
+    }
+
+    @Override
+    public void onChatUpdate(Uri to) {
         refresh();
     }
 }

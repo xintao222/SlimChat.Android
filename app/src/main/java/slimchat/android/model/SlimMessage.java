@@ -86,6 +86,7 @@ public class SlimMessage extends SlimPacket {
 		} else {
 			setNick(json.getString("from"));
 		}
+        setDirection(Direction.RECEIVE);
 		setBody(new SlimBody(json.getString("body")));
 		// TODO: timestamp
 	}

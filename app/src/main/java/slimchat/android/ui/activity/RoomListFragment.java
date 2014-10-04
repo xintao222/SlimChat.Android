@@ -142,7 +142,11 @@ public class RoomListFragment extends ListFragment implements SlimChatRoster.OnR
 
     @Override
     public void onRoomChange(SlimChatRoster.EventType eventType, String id) {
-        refresh();
-    }
 
-}
+        getActivity().runOnUiThread(new Runnable() {
+            public void run() {
+                refresh();
+            }});
+        }
+
+    }

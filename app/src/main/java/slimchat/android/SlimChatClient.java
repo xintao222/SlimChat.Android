@@ -39,7 +39,6 @@ import slimchat.android.model.SlimCallback;
 import slimchat.android.model.SlimMessage;
 import slimchat.android.model.SlimPresence;
 import slimchat.android.service.SlimChatService;
-import slimchat.android.ui.activity.LoginActivity;
 
 /**
  * SlimChat client to start service, send message, publish presence.
@@ -52,6 +51,7 @@ public class SlimChatClient extends SlimContextAware {
 
     //api provider
     private SlimApi.Provider apiProvider = null;
+
 
     /**
      * Service bound callback
@@ -175,6 +175,17 @@ public class SlimChatClient extends SlimContextAware {
      */
     public void online(Set<String> buddies, final SlimCallback callback) throws Exception {
         getService().online(buddies, callback);
+    }
+
+
+    /**
+     * Wrap service getBuddies
+     * @param id
+     */
+    public void getBuddies(String id) {
+        Set<String> ids = new HashSet<String>();
+        ids.add(id);
+        getService().getBuddies(ids, null);
     }
 
     /**

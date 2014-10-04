@@ -51,6 +51,8 @@ import android.widget.ListView;
 public class ChatActivity extends Activity implements OnClickListener,
 		OnKeyListener, OnMessageListener {
 
+    private static final String TAG = "ChatActivity";
+
     private Uri uri;
 
 	private SlimConversation chat;
@@ -62,6 +64,8 @@ public class ChatActivity extends Activity implements OnClickListener,
 	private EditText etInput;
 
 	private Button btnSend;
+
+    private DataSetObserver observer = null;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -88,13 +92,14 @@ public class ChatActivity extends Activity implements OnClickListener,
 		msgList.setAdapter(adapter);
 		msgList.setTranscriptMode(AbsListView.TRANSCRIPT_MODE_ALWAYS_SCROLL);
 		chat.setMessageListener(this);
-		adapter.registerDataSetObserver(new DataSetObserver() {
-			@Override
-			public void onChanged() {
-				super.onChanged();
-				msgList.setSelection(adapter.getCount() - 1);
-			}
-		});
+        observer = new DataSetObserver() {
+            @Override
+            public void onChanged() {
+                super.onChanged();
+                msgList.setSelection(adapter.getCount() - 1);
+            }
+        };
+		adapter.registerDataSetObserver(observer);
 	}
 
 	protected void onResume() {
@@ -117,6 +122,9 @@ public class ChatActivity extends Activity implements OnClickListener,
 
     protected void onDestroy() {
         super.onDestroy();
+        if(observer != null) {
+            adapter.unregisterDataSetObserver(observer);
+        }
         chat.setMessageListener(null);
     }
 	
@@ -156,12 +164,19 @@ public class ChatActivity extends Activity implements OnClickListener,
 
     @Override
     public void onMessageSent(String msgID) {
-        adapter.notifyDataSetChanged();
+        runOnUiThread(new Runnable() {
+            public void run() {
+                adapter.notifyDataSetChanged();
+            }});
     }
 
     @Override
-    public void onMessageReceived(String msgID) {
-        adapter.notifyDataSetChanged();
-    }
+    public void onMessageReceived(final String msgID) {
+        runOnUiThread(new Runnable() {
+            public void run() {
+                Log.d(TAG, "message Received: " + msgID);
+                adapter.notifyDataSetChanged();
+            }});
+        }
 
-}
+    }

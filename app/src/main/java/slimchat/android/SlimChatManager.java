@@ -33,6 +33,8 @@ import java.util.Map;
 
 import slimchat.android.db.SlimChatDb;
 import slimchat.android.db.SlimMessageDb;
+import slimchat.android.model.SlimMessage;
+import slimchat.android.model.SlimUris;
 import slimchat.android.model.SlimUser;
 
 /**
@@ -44,9 +46,12 @@ public class SlimChatManager extends SlimContextAware {
 
     static final String TAG = "SlimChatManager";
 
+
     public interface OnChatListener {
         void onChatOpen(Uri to);
         void onChatClose(Uri to);
+        void onChatUpdate(Uri to);
+
     }
 
     /**
@@ -192,6 +197,16 @@ public class SlimChatManager extends SlimContextAware {
      */
     public void removeListener(OnChatListener listener) {
         listeners.remove(listener);
+    }
+
+    public void messageReceived(SlimMessage message) {
+        String from = message.getFrom();
+        Uri uri = SlimUris.userUri(from);
+        SlimConversation chat = SlimChat.manager().open(uri);
+        chat.addMessage(message);
+        for(OnChatListener l : listeners) {
+            l.onChatUpdate(uri);
+        }
     }
 
 }

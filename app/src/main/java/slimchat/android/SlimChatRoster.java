@@ -24,6 +24,9 @@
  */
 package slimchat.android;
 
+import android.util.Log;
+
+import java.util.HashSet;
 import java.util.List;
 
 import org.json.JSONArray;
@@ -32,6 +35,7 @@ import org.json.JSONObject;
 
 import slimchat.android.db.SlimBuddyDb;
 import slimchat.android.db.SlimRoomDb;
+import slimchat.android.model.SlimPresence;
 import slimchat.android.model.SlimRoom;
 import slimchat.android.model.SlimUser;
 
@@ -170,6 +174,17 @@ public class SlimChatRoster extends SlimContextAware {
         return buddyDb.getCount();
     }
 
+
+    /**
+     * Has buddy
+     *
+     * @param id buddy id
+     * @return
+     */
+    public boolean hasBuddy(String id) {
+        return buddyDb.hasBuddy(id);
+    }
+
     /**
      * Get one buddy.
      *
@@ -198,6 +213,13 @@ public class SlimChatRoster extends SlimContextAware {
         }
         buddyDb.add(buddy);
         return EventType.ADDED;
+    }
+
+    public void updateBuddy(SlimUser buddy) {
+        buddyDb.update(buddy);
+        if(buddyListener != null) {
+            buddyListener.onBuddyChange(EventType.UPDATED, buddy.getId());
+        }
     }
 
     /**
@@ -256,6 +278,38 @@ public class SlimChatRoster extends SlimContextAware {
             if(roomListener != null) {
                 roomListener.onRoomChange(EventType.REMOVED, id);
             }
+        }
+    }
+
+    public void presenceReceived(SlimPresence presence) {
+        String type = presence.getType();
+        String from = presence.getFrom();
+        if("online".equals(type)) {
+            updatePresence(presence);
+            if(!hasBuddy(from)) {
+                loadBuddy(from);
+            }
+        } else if("offline".equals(type)) {
+            updatePresence(presence);
+        } else {
+            Log.e(TAG, "bad presence type: " + type);
+        }
+    }
+
+    private void loadBuddy(String id) {
+        SlimChat.client.getBuddies(id);
+    }
+
+
+    private void updatePresence(SlimPresence presence) {
+        String type = presence.getType();
+        String from = presence.getFrom();
+        if(buddyDb.hasBuddy(from)) {
+            SlimUser buddy = getBuddy(from);
+            buddy.setPresence(type);
+            buddy.setShow(presence.getShow());
+            buddy.setStatus(presence.getStatus());
+            updateBuddy(buddy);
         }
     }
 

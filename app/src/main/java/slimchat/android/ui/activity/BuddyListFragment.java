@@ -18,8 +18,8 @@ import slimchat.android.model.SlimUser;
 
 /**
  * A fragment representing a list of Items.
- * <p />
- * <p />
+ * <p/>
+ * <p/>
  */
 public class BuddyListFragment extends ListFragment implements SlimChatRoster.OnBuddyChangeListener {
 
@@ -88,11 +88,11 @@ public class BuddyListFragment extends ListFragment implements SlimChatRoster.On
     @Override
     public void onResume() {
         super.onResume();
-            refresh();
+        refresh();
     }
 
     public void refresh() {
-        if(!isHidden()) {
+        if (!isHidden()) {
             adapter = new BuddyAdapter(getActivity(), R.layout.item_buddy, SlimChat.roster().getBuddies());
             setListAdapter(adapter);
             adapter.notifyDataSetChanged();
@@ -105,15 +105,19 @@ public class BuddyListFragment extends ListFragment implements SlimChatRoster.On
     }
 
     public void onListItemClick(ListView parent, View v,
-                                int position, long id)
-    {
+                                int position, long id) {
         Log.d(TAG, "ItemClicked: " + id);
-        SlimUser user = adapter.getItem((int)id);
-        ((MainActivity)getActivity()).startChat(user.getUri());
+        SlimUser user = adapter.getItem((int) id);
+        ((MainActivity) getActivity()).startChat(user.getUri());
     }
 
     @Override
     public void onBuddyChange(SlimChatRoster.EventType evtType, String id) {
-        refresh();
+        getActivity().runOnUiThread(new Runnable() {
+            public void run() {
+                refresh();
+            }
+        });
+
     }
 }

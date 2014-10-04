@@ -8,14 +8,18 @@ import org.eclipse.paho.client.mqttv3.MqttMessage;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import slimchat.android.SlimChat;
+import slimchat.android.SlimConversation;
 import slimchat.android.model.SlimMessage;
 import slimchat.android.model.SlimPresence;
+import slimchat.android.model.SlimUris;
 
 /**
  * Created by feng on 14-9-25.
  */
 public class SlimChatReceiver implements MqttCallback {
 
+    public static final String TAG = "SlimChatReceiver";
     private final SlimChatService service;
 
     public SlimChatReceiver(SlimChatService service) {
@@ -56,7 +60,6 @@ public class SlimChatReceiver implements MqttCallback {
         service.connectionLost(throwable);
     }
 
-
     @Override
     public void deliveryComplete(IMqttDeliveryToken iMqttDeliveryToken) {
         //TODO: nothing to do
@@ -72,31 +75,17 @@ public class SlimChatReceiver implements MqttCallback {
      * @param message 即时消息
      */
     private void handleMessage(SlimMessage message) {
-        //TODO:
-        Log.d("SlimChatService", "messageArrived: " + message.toString());
-        //1. Store the message
-        //2. Open the conversation
-        //3. Update unread
+        Log.d(TAG, "handleMessage: " + message.toString());
+        SlimChat.manager().messageReceived(message);
         //4. broadcast intent
-        /*
-            String from = message.getFrom();
-            SlimConversation conversation = SlimChatManager.getInstance().open(from);
-            conversation.addMessage(message);
-            Log.d("SlimChatManager", "chat: " + conversation.toString()
-                    + ", unread: " + conversation.getUnread());
-                    */
-        /*
-		if (conversation.getUnread() > 0) {
-			getRoster().updateUnread(from);
-		}
-		*/
     }
 
     /**
      * TODO: 处理现场消息。
      */
     private void handlePresence(SlimPresence presence) {
-        Log.d("SlimChatService", "presenceArrived: " + presence.toString());
+        Log.d(TAG, "presenceArrived: " + presence.toString());
+        SlimChat.roster().presenceReceived(presence);
         //1. update database
         //2. update memory
         //3. broadcast intent
